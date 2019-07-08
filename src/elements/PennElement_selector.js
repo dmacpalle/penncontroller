@@ -237,6 +237,8 @@ window.PennController._AddElementType("Selector", function(PennEngine) {
         disable: function(resolve){
             this.disabled = true;
             this.elements.map(element=>element[0].jQueryElement.css("cursor", ""));
+            this.jQueryContainer.addClass("PennController-disabled");
+            this.jQueryElement.addClass("PennController-disabled");
             resolve();
         },
         disableClicks: function(resolve){  /* $AC$ Selector PElement.settings.disableClicks() Disables selection by click $AC$ */
@@ -248,6 +250,8 @@ window.PennController._AddElementType("Selector", function(PennEngine) {
             this.disabled = false;
             if (!this.noClick)
                 this.elements.map(element=>element[0].jQueryElement.css("cursor", "pointer"));
+            this.jQueryContainer.removeClass("PennController-disabled");
+            this.jQueryElement.removeClass("PennController-disabled");    
             resolve();
         },
         enableClicks: function(resolve){  /* $AC$ Selector PElement.settings.enableClicks() Enables selection by click (again) $AC$ */

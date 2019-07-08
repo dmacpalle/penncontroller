@@ -1,4 +1,4 @@
-import { lazyPromiseFromArrayOfLazyPromises, guidGenerator, parseElementCommands } from "./utils.js";
+import { lazyPromiseFromArrayOfLazyPromises, guidGenerator, parseElementCommands, parseCoordinates, levensthein } from "./utils.js";
 import { PennController } from "./controller.js";
 import { PennEngine } from "./engine.js";
 
@@ -114,6 +114,7 @@ class PennElement {
             },
             get: function() { return jQueryElement; }
         });
+        this.jQueryContainer = $("<div>");
         this.id = id;
         this.type = name;
         this._printCallback = [];
@@ -122,11 +123,43 @@ class PennElement {
     }
 }
 
+let errorCommand = (command, type, name) => {
+    let add = "";
+    if ((levensthein(command,"settings") / "settings".length) < 0.5)
+        add = " Did you mean to type &lsquo;settings&rsquo;?";
+    if ((levensthein(command,"test") / "test".length) < 0.5)
+        add = " Did you mean to type &lsquo;test&rsquo;?";
+    if ((levensthein(command,"testNot") / "testNot".length) < 0.5)
+        add = " Did you mean to type &lsquo;testNot&rsquo;?";
+    PennEngine.debug.error("Command &lsquo;"+command+"&rsquo; unknown on "+type+" element &lsquo;"+name+"&rsquo;."+add);
+};
+
 // A class representing commands on elements, instantiated upon call to newX and getX
 // An instance is fed with the methods corresponding to its element type (defined within _AddElementType)
 class PennElementCommands {
     constructor(element, type){
-        let t = this;
+        let t = new Proxy(this, {
+            get: (obj, prop) => {
+                if (prop in this)
+                    return obj[prop];
+                else {
+                    if (prop == "_runPromises")
+                        return () => this._runPromises.call(this);
+                    let r;
+                    try {
+                        r = this[prop];
+                    }
+                    catch(err){
+                        errorCommand(prop,this.type,this._element.id);
+                        return t;
+                    }
+                    if (r === undefined && typeof(prop) == "string" && prop != "nodeType")
+                        errorCommand(prop,this.type,this._element.id);
+                    return r;
+                }
+            }
+        });
+        this._proxy = t;
         if (element instanceof PennElement)
             t._element = element;
         else if (typeof(element) == "string"){  // element = name/id    >   attribute
@@ -156,7 +189,14 @@ class PennElementCommands {
             };
         }
         // SETTINGS COMMANDS
-        t.settings = {};
+        t.settings = new Proxy({}, {
+            get: (obj, prop) => {
+                if (prop in obj)
+                    return obj[prop];
+                else
+                    PennEngine.debug.error("Command &lsquo;.settings."+prop+"&rsquo; unknown on "+this.type+" element &lsquo;"+this._element.id+"&rsquo;");
+            }
+        });
         for (let p in type.settings) {
             t.settings[p] = function(...rest){ 
                 let func = function(...args){ 
@@ -173,8 +213,22 @@ class PennElementCommands {
             };
         }
         // TEST COMMANDS
-        t.test = {};
-        t.testNot = {};
+        t.test = new Proxy({}, {
+            get: (obj, prop) => {
+                if (prop in obj)
+                    return obj[prop];
+                else
+                    PennEngine.debug.error("Command &lsquo;.test."+prop+"&rsquo; unknown on "+this.type+" element &lsquo;"+this._element.id+"&rsquo;");
+            }
+        });
+        t.testNot = new Proxy({}, {
+            get: (obj, prop) => {
+                if (prop in obj)
+                    return obj[prop];
+                else
+                    PennEngine.debug.error("Command &lsquo;.testNot."+prop+"&rsquo; unknown on "+this.type+" element &lsquo;"+this._element.id+"&rsquo;");
+            }
+        });
         for (let p in type.test) {
             t.test[p] = function (...rest){
                 let func = function(...args){
@@ -228,14 +282,21 @@ class PennElementCommands {
 let standardCommands = {
     actions: {
         // Adds the element to the page (or to the provided element)
-        print: async function(resolve, where){              /* $AC$ all PElements.print() Prints the element $AC$ */
+        print: async function(resolve, where, y, canvas){      /* $AC$ all PElements.print() Prints the element $AC$ */
+            if (canvas && typeof(canvas)=="string"){
+                canvas = PennController.Elements.getCanvas(canvas);
+            }
+            if (canvas && canvas instanceof PennElementCommands && canvas.type=="Canvas"){
+                canvas.settings.add(where,y,PennController.Elements['get'+this.type](this.id))
+                    ._runPromises().then(()=>resolve());
+                return;
+            }
             if (this.hasOwnProperty("jQueryElement") && this.jQueryElement instanceof jQuery){
-                if (this.jQueryContainer instanceof jQuery)
-                    this.jQueryContainer.remove();
+                this.jQueryContainer.detach();
                 this.jQueryElement.addClass("PennController-"+this.type.replace(/[\s_]/g,''));
                 this.jQueryElement.addClass("PennController-"+this.id.replace(/[\s_]/g,''));
-                let div = $("<div>").css("display","inherit");      // (embed in a div first)
-                this.jQueryContainer = div;
+                let div = this.jQueryContainer;
+                div.css("display","inherit");
                 if (typeof(this.jQueryAlignment)=="string")
                     div.css("text-align",this.jQueryAlignment);     // Handle horizontal alignement, if any
                 div.addClass("PennController-elementContainer")
@@ -244,10 +305,17 @@ let standardCommands = {
                     .append(this.jQueryElement);
                 if (where instanceof jQuery)                        // Add to the specified jQuery element
                     where.append(div);
+                else if (y) {
+                    div.appendTo($("body")).css('display','inline-block');
+                    let coordinates = parseCoordinates(where,y,div);
+                    div.css({position: "absolute", left: coordinates.x, top: coordinates.y});
+                }
                 else                                                // Or to main element by default
                     PennEngine.controllers.running.element.append(div.css("width", "100%"));
-                if (this.cssContainer)                              // Apply custom css if defined
-                    div.css.apply(div, this.cssContainer);
+                if (this.cssContainer instanceof Array && this.cssContainer.length){ // Apply custom css if defined
+                    for (let i = 0; i < this.cssContainer.length; i++)
+                        div.css.apply(div, this.cssContainer[i]);
+                }
                 div.css({
                     "min-width": this.jQueryElement.width(),
                     "min-height": this.jQueryElement.height()
@@ -260,16 +328,18 @@ let standardCommands = {
                                 .addClass("PennController-after")
                                 .addClass("PennController-"+this.type.replace(/[\s_]/g,'')+"-after")
                                 .addClass("PennController-"+this.id.replace(/[\s_]/g,'')+"-after");
-                //if (this.jQueryBefore && this.jQueryBefore.length)
-                    this.jQueryElement.before( before );
-                //if (this.jQueryAfter && this.jQueryAfter.length)
-                    this.jQueryElement.after( after );
+                this.jQueryElement.before( before );
+                this.jQueryElement.after( after );
                 for (let e in this.jQueryBefore)
                     if (this.jQueryBefore[e] && this.jQueryBefore[e]._element)
-                        await this.jQueryBefore[e].print( before )._runPromises();
+                        await (new Promise(r=>
+                            standardCommands.actions.print.call(this.jQueryBefore[e]._element, r, before)
+                        ));
                 for (let e in this.jQueryAfter)
                     if (this.jQueryAfter[e] && this.jQueryAfter[e]._element)
-                        await this.jQueryAfter[e].print( after )._runPromises();
+                        await (new Promise(r=>
+                            standardCommands.actions.print.call(this.jQueryAfter[e]._element, r, after)
+                        ));
             }
             else
                 PennEngine.debug.error("No jQuery instance to print for element "+this.id);
@@ -295,19 +365,19 @@ let standardCommands = {
         // Removes the element from the page
         remove: function(resolve){              /* $AC$ all PElements.remove() Removes the element from the page $AC$ */
             if (this.jQueryContainer instanceof jQuery)
-                    this.jQueryContainer.remove();
+                    this.jQueryContainer.detach();
             if (this.jQueryElement instanceof jQuery)
-                this.jQueryElement.remove();
+                this.jQueryElement.detach();
             else
                 PennEngine.debug.error("No jQuery instance to remove for element "+this.id);
             if (this.jQueryBefore && this.jQueryBefore.length)
                 for (let b in this.jQueryBefore)
                     if (this.jQueryBefore[b]._element && this.jQueryBefore[b]._element.jQueryElement instanceof jQuery)
-                        this.jQueryBefore[b]._element.jQueryElement.remove();
+                        this.jQueryBefore[b]._element.jQueryElement.detach();
             if (this.jQueryAfter && this.jQueryAfter.length)
                 for (let a in this.jQueryAfter)
                     if (this.jQueryAfter[a]._element && this.jQueryAfter[a]._element.jQueryElement instanceof jQuery)
-                        this.jQueryAfter[a]._element.jQueryElement.remove();
+                        this.jQueryAfter[a]._element.jQueryElement.detach();
             resolve();
         }
     }
@@ -315,7 +385,7 @@ let standardCommands = {
     settings: {
         after: function(resolve,  commands){    /* $AC$ all PElements.settings.after(element) Prints an element to the right of the current element $AC$ */
             if (commands._element && commands._element.jQueryElement instanceof jQuery){
-                if (this.jQueryElement.parent().length)     // If this element already printed
+                if (this.jQueryElement instanceof jQuery && this.jQueryElement.printed()) // If this element already printed
                     commands.print( this.jQueryContainer.find(".PennController-"+this.type+"-after") )
                 commands._runPromises().then(()=>{
                     this.jQueryAfter.push( commands );
@@ -329,7 +399,7 @@ let standardCommands = {
         },
         before: function(resolve,  commands){    /* $AC$ all PElements.settings.before(element) Prints an element to the left of the current element $AC$ */
             if (commands._element && commands._element.jQueryElement instanceof jQuery){
-                if (this.jQueryElement.parent().length)     // If this element already printed
+                if (this.jQueryElement instanceof jQuery && this.jQueryElement.printed()) // If this element already printed
                     commands.print( this.jQueryContainer.find(".PennController-"+this.type+"-before") )
                 commands._runPromises().then(()=>{
                     this.jQueryBefore.push( commands );
@@ -368,8 +438,10 @@ let standardCommands = {
             resolve();
         },
         cssContainer: function(resolve, ...rest){ /* $AC$ all PElements.settings.cssContainer(option,value) Applies the CSS to the container of the element $AC$ */
-            this.cssContainer = rest;
-            if (this.jQueryContainer instanceof jQuery)
+            if (!this.cssContainer)
+                this.cssContainer = [];
+            this.cssContainer.push(rest);
+            if (this.jQueryContainer.printed())
                 this.jQueryContainer.css(...rest);
             resolve();
         },
@@ -382,14 +454,14 @@ let standardCommands = {
         },
         disable: function(resolve){             /* $AC$ all PElements.settings.disable() Disables the element $AC$ */
             if (this.hasOwnProperty("jQueryElement") && this.jQueryElement instanceof jQuery)
-                this.jQueryElement.attr("disabled", true);
+                this.jQueryElement.attr("disabled", true).addClass("PennController-disabled");
             else
                 PennEngine.debug.error("No jQuery instance to disable for element "+this.id);
             resolve();
         },
         enable: function(resolve){             /* $AC$ all PElements.settings.enable() Enables the element $AC$ */
             if (this.hasOwnProperty("jQueryElement") && this.jQueryElement instanceof jQuery)
-                this.jQueryElement.removeAttr("disabled");
+                this.jQueryElement.removeAttr("disabled").removeClass("PennController-disabled");
             else
                 PennEngine.debug.error("No jQuery instance to enable for element "+this.id);
             resolve();
@@ -461,9 +533,9 @@ let standardCommands = {
     ,
     test: {
         printed: function(){             /* $AC$ all PElements.test.printed() Checks that the element is printed on the page $AC$ */
-            return this.hasOwnProperty("jQueryElement") && 
-                    this.jQueryElement instanceof jQuery && 
-                    this.jQueryElement.parent().length;
+            if (this.hasOwnProperty("jQueryElement") && this.jQueryElement instanceof jQuery)
+                return this.jQueryElement.printed()
+            return false;
         }
     }
 };
@@ -591,7 +663,7 @@ PennController._AddElementType = function(name, Type) {
         let id = guidGenerator();                               // The element's ID (to be overwritten)
         if (rest.length<1){                                     // No argument provided
             rest = [id];                                        // Try to create an ID anyway
-            PennEngine.debug.error("No argument provided for a "+name+" element");
+            // PennEngine.debug.error("No argument provided for a "+name+" element");
         }
         else if (typeof(rest[0])=="string"&&rest[0].length>0)   // If an ID was provided, use it
             id = rest[0];                                       
@@ -600,6 +672,7 @@ PennController._AddElementType = function(name, Type) {
             type.immediate.apply(element, rest);                // Immediate initiation of the element
         controller._addElement(element);                        // Adding the element to the controller's dictionary
         let commands = new PennElementCommands(element, type);  // An instance of PennElementCommands bound to the element
+        commands = commands._proxy;
         commands._promises.push( ()=>new Promise(r=>{element.printTime=0; element.log=false; r();}) ); // Init universal properties
         commands._promises.push( ()=>new Promise(r=>type.uponCreation.apply(element, [r])) ); // First command (lazy Promise)
         if (controller.defaultCommands.hasOwnProperty(name))// If current controller has default commands for element's type
@@ -619,7 +692,7 @@ PennController._AddElementType = function(name, Type) {
     // 'get'
     PennController.Elements["get"+name] = function (id) {
         let type = elementTypes[name];
-        return new PennElementCommands(id, type);               // Return the command API
+        return (new PennElementCommands(id, type))._proxy;      // Return the command API
     };
     // 'default'        Use a getter method to run setType when called
     Object.defineProperty(PennController.Elements, "default"+name, {
@@ -680,7 +753,7 @@ PennController._AddStandardCommands = function(commandsConstructor){
 
 
 // This allows the users to call the instruction methods as global functions
-PennController.ResetPrefix = function(prefixName) {
+PennController.ResetPrefix = function(prefixName) { /* $AC$ global.PennController.ResetPrefix(prefix) Resets the prefix for the new* and get* commands; pass null to make them global $AC$ */
     if (typeof(prefixName)=="string"){
         if (window[prefix])
             throw "ERROR: prefix string already used for another JS object";

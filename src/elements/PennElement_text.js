@@ -30,6 +30,46 @@ window.PennController._AddElementType("Text", function(PennEngine) {
         }
     }
 
+    this.actions = {
+        unfold: function(resolve, duration){ /* $AC$ Text PElement.unfold(duration) Unfolds the text in duration milliseconds $AC$ */
+            let startUnfolding = ()=>{
+                let d = Number(duration);
+                if (d>0){
+                    let start = Date.now();
+                    this.jQueryElement.css("visibility", "visible");
+                    let width = this.jQueryElement.width();
+                    let wrap = $("<div>").css({
+                        display: 'inline-block',
+                        'overflow-x': 'hidden',
+                        width: 0,
+                        margin: 0,
+                        padding: 0,
+                        'white-space': 'nowrap'
+                    });
+                    wrap = this.jQueryElement.wrap(wrap).parent();
+                    let previousWidth = 0;
+                    let unfold = ()=>{                        
+                        let proportion = (Date.now()-start) / d;
+                        if (proportion>=1)
+                            proportion = 1;
+                        let newWidth = Math.round(width*proportion);
+                        if (newWidth>previousWidth)
+                            wrap.width(newWidth);
+                        previousWidth = newWidth;
+                        if (proportion<1)
+                            window.requestAnimationFrame(unfold);
+                    };
+                    window.requestAnimationFrame(unfold);
+                }
+            };
+            if (!(this.jQueryContainer instanceof jQuery && this.jQueryContainer.parent().length))
+                PennEngine.elements.standardCommands.actions.print.call(this, startUnfolding);
+            else
+                startUnfolding();
+            resolve();
+        }
+    }
+
     this.settings = {
         text: function(resolve,  text){ /* $AC$ Text PElement.settings.text(text) Redefines the text of the element $AC$ */
             this.text = text;

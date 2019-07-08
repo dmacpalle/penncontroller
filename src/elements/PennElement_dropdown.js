@@ -40,12 +40,12 @@ window.PennController._AddElementType("DropDown", function(PennEngine) {
         if (this.log){
             if (this.selections.length){
                 if (typeof(this.log)=="string" && this.log.match(/^\W*first\W*$/i))
-                    PennEngine.controllers.running.save(this.type, this.id, "Selected", ...this.selections[0]);
+                    PennEngine.controllers.running.save(this.type, this.id, ...this.selections[0]);
                 else if (typeof(this.log)=="string" && this.log.match(/^\W*all\W*$/i))
                     for (let i=0; i<this.selections.length; i++)
                         PennEngine.controllers.running.save(this.type, this.id, ...this.selections[i]);
                 else    // last
-                    PennEngine.controllers.running.save(this.type, this.id, "Selected", ...this.selections[this.selections.length-1]);
+                    PennEngine.controllers.running.save(this.type, this.id, ...this.selections[this.selections.length-1]);
             }
             else
                 PennEngine.controllers.running.save(this.type, this.id, "Selected", 
@@ -130,6 +130,30 @@ window.PennController._AddElementType("DropDown", function(PennEngine) {
                 }
             }
             resolve();
+        },
+        callback: function(resolve, ...commands){
+            let oldChange = this.change;
+            this.change = async function () {
+                let disabled = this.jQueryElement.attr("disabled");
+                await oldChange.apply(this);
+                if (disabled)
+                    return;
+                for (let i = 0; i < commands.length; i++){
+                    if (commands[i]._runPromises)
+                        await commands[i]._runPromises();
+                    else if (commands[i] instanceof Function)
+                        await commands[i]();
+                }
+            }
+            resolve();
+        },
+        once: function (resolve) {
+            let oldChange = this.change;
+            this.change = ()=>{
+                oldChange.apply(this);
+                this.jQueryElement.attr("disabled", true);
+                resolve();
+            }
         },
         remove: function(resolve,  option){   /* $AC$ DropDown PElement.settings.remove(option) Removes the specified option from the drop-down $AC$ */
             let index = this.options.indexOf(option);

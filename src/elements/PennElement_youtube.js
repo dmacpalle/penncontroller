@@ -185,7 +185,7 @@ window.PennController._AddElementType("Youtube", function(PennEngine) {
             this.player.pauseVideo();
             resolve();
         },
-        print: function(resolve, where){    /* $AC$ Youtube PElement.print() Shows Youtube's video player $AC$ */
+        print: function(resolve, ...where){    /* $AC$ Youtube PElement.print() Shows Youtube's video player $AC$ */
             let afterPrint = ()=>{
                 let pos = this.jQueryElement.offset();
                 this.iframe.css({position:"absolute", left: pos.left, top: pos.top, display: "inline-block"});
@@ -216,7 +216,7 @@ window.PennController._AddElementType("Youtube", function(PennEngine) {
                     this.printDisable();
                 resolve();
             };
-            PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, where]);
+            PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, ...where]);
         },
         remove: function(resolve){    /* $AC$ Youtube PElement.remove() Removes Youtube's video player $AC$ */
             this.iframe.css("display","none");
@@ -262,6 +262,8 @@ window.PennController._AddElementType("Youtube", function(PennEngine) {
         disable: function(resolve){    /* $AC$ Youtube PElement.settings.disable() Disables the Youtube video player $AC$ */
             this.printDisable();
             this.disabled = true;
+            this.jQueryContainer.addClass("PennController-disabled");
+            this.jQueryElement.addClass("PennController-disabled");
             resolve();
         },
         enable: function(resolve){    /* $AC$ Youtube PElement.settings.enable() Enables the Youtube video player (again) $AC$ */
@@ -269,7 +271,8 @@ window.PennController._AddElementType("Youtube", function(PennEngine) {
                 this.disabled = false;
                 this.jQueryDisable.remove();
                 this.jQueryDisable = null;
-                this.jQueryElement.removeClass("PennController-"+this.type+"-disabled");
+                this.jQueryContainer.removeClass("PennController-disabled");
+                this.jQueryElement.removeClass("PennController-disabled");
             }
             resolve();
         },

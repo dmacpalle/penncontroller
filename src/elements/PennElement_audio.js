@@ -10,9 +10,11 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
             file = id;
         }
         let addHostURLs = !file.match(/^http/i);
+
         this.resource = PennEngine.resources.fetch(file, function(resolve){
             this.object = new Audio(this.value);               // Creation of the audio using the resource's value
-            this.object.addEventListener("canplay", resolve);  // Preloading is over when can play (>> resolve)
+            //this.object.addEventListener("canplay", resolve);  // Preloading is over when can play (>> resolve)
+            this.object.addEventListener("canplaythrough", resolve);  // Preloading is over when can play (>> resolve)
         }, addHostURLs);
     };
 
@@ -60,7 +62,6 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
                 height: this.jQueryElement.height()
             });
             this.jQueryElement.before(this.jQueryDisable);
-            this.jQueryElement.addClass("PennController-"+this.type.replace(/[\s_]/g,'')+"-disabled");
         };
         resolve();
     };
@@ -119,13 +120,13 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
             resolve();
         }
         ,
-        print: function(resolve, where){      /* $AC$ Audio PElement.print() Prints an interface to control the audio playback $AC$ */
+        print: function(resolve, ...where){      /* $AC$ Audio PElement.print() Prints an interface to control the audio playback $AC$ */
             let afterPrint = ()=>{
                 if (this.disabled)
                     this.printDisable();
                 resolve();
             };
-            PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, where]);
+            PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, ...where]);
         },
         stop: function(resolve){      /* $AC$ Audio PElement.stop() Stops the audio playback $AC$ */
             this.audio.pause();
@@ -167,6 +168,8 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
     
     this.settings = {
         disable: function(resolve){      /* $AC$ Audio PElement.settings.disable() Disables the interface $AC$ */
+            this.jQueryElement.addClass("PennController-disabled");
+            this.jQueryContainer.addClass("PennController-disabled");
             this.printDisable();
             this.disabled = true;
             resolve();
@@ -177,7 +180,8 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
                 this.disabled = false;
                 this.jQueryDisable.remove();
                 this.jQueryDisable = null;
-                this.jQueryElement.removeClass("PennController-"+this.type+"-disabled");
+                this.jQueryElement.removeClass("PennController-disabled");
+                this.jQueryContainer.removeClass("PennController-disabled");
             }
             resolve();
         }

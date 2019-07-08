@@ -6,9 +6,9 @@ window.PennController._AddElementType("Tooltip", function(PennEngine) {
     function remove(){                          // Special function to remove element from DOM
         this.jQueryElement.remove();
         if (this.jQueryContainer instanceof jQuery)
-            this.jQueryContainer.remove();
+            this.jQueryContainer.detach();
         if (this.frame && this.frame instanceof jQuery)
-            this.frame.remove();
+            this.frame.detach();
     }
 
     // This is executed when Ibex runs the script in data_includes (not a promise, no need to resolve)
@@ -183,12 +183,14 @@ window.PennController._AddElementType("Tooltip", function(PennEngine) {
     this.settings = {
         disable: function(resolve){
             this.disabled = true;
-            this.jQueryElement.addClass("PennController-"+this.type.replace(/[\s_]/g,'')+"-disabled");
+            this.jQueryContainer.addClass("PennController-disabled");
+            this.jQueryElement.addClass("PennController-disabled");
             resolve();
         },
         enable: function(resolve){
             this.disabled = false;
-            this.jQueryElement.removeClass("PennController-"+this.type.replace(/[\s_]/g,'')+"-disabled");
+            this.jQueryContainer.removeClass("PennController-disabled");
+            this.jQueryElement.removeClass("PennController-disabled");
             resolve();
         },
         frame: function(resolve, css){  /* $AC$ Tooltip PElement.settings.css(css) Applies the specified CSS to the frame around the target element $AC$ */

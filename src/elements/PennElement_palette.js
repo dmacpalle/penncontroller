@@ -171,10 +171,14 @@ window.PennController._AddElementType("Palette", function(PennEngine) {
             resolve();
         },
         enable: function(resolve){   /* $AC$ Palette PElement.settings.enable() Enables the palette $AC$ */
+            this.jQueryContainer.removeClass("PennController-disabled");
+            this.jQueryElement.removeClass("PennController-disabled");
             this.enabled = true;
             resolve();
         },
         disable: function(resolve){   /* $AC$ Palette PElement.settings.disable() Disables the palette $AC$ */
+            this.jQueryContainer.addClass("PennController-disabled");
+            this.jQueryElement.addClass("PennController-disabled");
             this.enabled = false;
             resolve();
         },

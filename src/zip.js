@@ -36,7 +36,7 @@ function _preloadZip () {
                 throw error;    // Throw the error
             }
             zip.loadAsync(data).then(function(){                // Load the zip object with the data stream
-                PennEngine.debug.log("Download of ",url," complete");
+                PennEngine.debug.log("Download of "+url+" complete");
                 var unzippedFilesSoFar = 0;                     // Number of files unzipped
                 zip.forEach(function(path, file){               // Going through each zip file
                     file.async('arraybuffer').then(function(content){   // Unzip the file

@@ -26,25 +26,30 @@ window.PennController._AddElementType("TextInput", function(PennEngine) {
             this.entered = true;
             this.validations.push(["EnterReturn",this.jQueryElement.val(),Date.now(),"NULL"]);
         };
-        this.jQueryElement.bind("keydown", e=>{             // KEYDOWN
+        this.jQueryElement[0].addEventListener("keydown", e=>{// KEYDOWN
             let text = this.jQueryElement.val();
-            this.types.push(["Type",text,Date.now(),e.which]);// Save _all_ typing events
-            if (e.keyCode==13){                             // CASE: Enter/Return
+            this.types.push(["Type",text,Date.now(),e.key]);// Save _all_ typing events
+            if (e.key=="Enter"){                            // CASE: Enter/Return
                 this.pressEnter();
                 if (this.rows == 1)
-                    return false;                           // Prevent insertion if one-line input
+                    e.preventDefault();                     // Prevent insertion if one-line input
                 else if (this.rows > 1){                    // Check # of lines if limit on rows
                     let returns = text.match(/[\r\n]/g);    // How many returns/newlines already
                     if (returns instanceof Array && returns.length+1 >= this.rows)
-                        return false;                       // Prevent if limit reached
+                        e.preventDefault();                 // Prevent if limit reached
                 }
             }
         });
-        this.jQueryElement.keypress(e=>{
-            if (e.charCode && this.length==this.jQueryElement.val().length)
-                return false;                               // Prevent insertion if printable character and length limit reached
+        this.jQueryElement[0].addEventListener("keypress", e=>{
+            if (e.key=="Enter" && this.rows > 0){
+                let returns = this.jQueryElement.val().match(/[\r\n]/g);
+                if (returns instanceof Array && returns.length+1 >= this.rows)
+                    e.preventDefault();
+            }
+            if (!e.key.isSpecialKey() && this.length==this.jQueryElement.val().length)
+                e.preventDefault();                        // Prevent insertion if printable character and length limit reached
         })
-        this.jQueryElement.bind("keyup", e=>{               // KEYUP [special case: pasted text]
+        this.jQueryElement[0].addEventListener("keyup", e=>{ // KEYUP [special case: pasted text]
             let text = this.jQueryElement.val();
             if (this.length && text.length > this.length)   // Truncate text if longer than max chars
                 this.jQueryElement.val(text.substr(0,this.length));
@@ -52,6 +57,26 @@ window.PennController._AddElementType("TextInput", function(PennEngine) {
             if (this.rows > 0 && returns instanceof Array && returns.length >= this.rows+1) {
                 let regx = "([\\n\\r]?[^\\n\\r]*){"+this.rows+"}";      // Capture text until correct # of returns/newlines
                 this.jQueryElement.val(text.match(RegExp(regx))[0]);    // Truncate text
+            }
+        });
+        this.jQueryElement[0].addEventListener("paste", e=>{
+            let text = this.jQueryElement.val();
+            let clipboardData = e.clipboardData || window.clipboardData;
+            let pastedData = clipboardData.getData('Text');
+            let caretPos = this.jQueryElement[0].selectionStart;
+            let front = (text).substring(0, caretPos);
+            let back = (text).substring(this.jQueryElement[0].selectionEnd, text.length);
+            let tmpValue = front + pastedData + back;
+            let returns =  tmpValue.match(/[\r\n]/g);               // How many returns/newlines in text now
+            if (this.rows > 0 && returns instanceof Array && returns.length >= this.rows){
+                let regx = "([\\n\\r]?[^\\n\\r]*){"+this.rows+"}";  // Capture text until correct # of returns/newlines
+                tmpValue = tmpValue.match(RegExp(regx))[0];         // Truncate text
+                this.jQueryElement.val(tmpValue);
+                e.preventDefault();
+            }
+            if (this.length > 0 && tmpValue.length >= this.length){
+                this.jQueryElement.val(tmpValue.substring(0,this.length));
+                e.preventDefault();
             }
         });
         resolve();
@@ -104,12 +129,12 @@ window.PennController._AddElementType("TextInput", function(PennEngine) {
     };
     
     this.actions = {
-        print: function(resolve, where){
+        print: function(resolve, ...where){
             let afterPrint = ()=>{
                 this.jQueryElement.focus();         // Put focus on element when printed
                 resolve();
             }
-            PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, where]);
+            PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, ...where]);
         },
         wait: function(resolve, test){  /* $AC$ TextInput PElement.wait() Waits until Enter is pressed in the input box before proceeding $AC$ */
             if (test == "first" && this.entered)    // If first and already entered, resolve already

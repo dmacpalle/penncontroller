@@ -31,8 +31,12 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
             $(this.table.find(".PennController-"+this.type+"-scaleButton input[type=radio]")[index]).attr("checked", true);
             break;
         }
-        if (simulate)
-            this.choice(this.buttons[index]);
+        if (simulate){
+            let value = this.buttons[index];
+            if (value===undefined||value===null||value=="")
+                value = index+1;
+            this.choice(value);
+        }
     }
 
     function fixAesthetics(){                                       // Handle slider's rotation after table added to page
@@ -66,11 +70,11 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
         let type = this.scaleType;
         this.table.empty();                                 // First empty the table
         let buttonLabelCells = [];                          // [<td button> , <td label>]
-        for (let b  = 0; b < this.buttons.length; b++){
+        for (let b = 0; b < this.buttons.length; b++){
             let buttonCell = $("<td>").addClass("PennController-"+this.type.replace(/[\s_]/g,'')+"-scaleButton");
             let labelCell = $("<td>").addClass("PennController-"+this.type.replace(/[\s_]/g,'')+"-label");
             let value = this.buttons[b];
-            if (value===undefined||value===null)                    // If the array's entry is void, use its index
+            if (value===undefined||value===null||value=="")         // If the array's entry is void, use its index
                 value = b+1;
             else if (value._runPromises)                            // If the value is an element command
                 value.print( labelCell )._runPromises().then(()=>{  // Print the element in the cell
@@ -235,7 +239,7 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
                 duration = Date.now() - this.firstClick;
                 this.firstClick = undefined;
             }
-            this.choices.push(["Choice", value, Date.now(), duration]);
+            this.choices.push(["Choice", value, Date.now(), duration||"NULL"]);
         };
         PennEngine.controllers.running.safeBind($(document), "keydown", (e)=>{
             if (this.disabled)
@@ -275,13 +279,13 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
     };
     
     this.actions = {
-        print: function(resolve, where){
+        print: function(resolve, ...where){
             buildScale.apply(this);                         // (Re)Build the scale when printing
             let afterPrint = ()=>{
                 fixAesthetics.apply(this);                  // Need table on the page to calculate widths and heights
                 resolve();
             };                                              // Standard print, then afterPrint resolves
-            PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, where]);
+            PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, ...where]);
         },
         select: function(resolve, option, simulate){    /* $AC$ Scale PElement.select(option) Selects the specified option on the scale $AC$ */
             for (var b  = 0; b < this.buttons.length; b++){
@@ -360,10 +364,14 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
         },
         disable: function(resolve){
             disable.apply(this);
+            this.jQueryContainer.addClass("PennController-disabled");
+            this.jQueryElement.addClass("PennController-disabled");
             resolve();
         },
         enable: function(resolve){
             enable.apply(this);
+            this.jQueryContainer.removeClass("PennController-disabled");
+            this.jQueryElement.addClass("PennController-disabled");
             resolve();
         },
         horizontal: function(resolve){    /* $AC$ Scale PElement.settings.horizontal() Aligns the scale's options horizontally (again) $AC$ */

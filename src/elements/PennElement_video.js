@@ -59,7 +59,6 @@ window.PennController._AddElementType("Video", function(PennEngine) {
                 height: this.jQueryElement.height()
             });
             this.jQueryElement.before(this.jQueryDisable);
-            this.jQueryElement.addClass("PennController-"+this.type.replace(/[\s_]/g,'')+"-disabled");
         };
         resolve();
     };
@@ -118,13 +117,13 @@ window.PennController._AddElementType("Video", function(PennEngine) {
             resolve();
         }
         ,
-        print: function(resolve, where){        /* $AC$ Video PElement.print() Shows a video player $AC$ */
+        print: function(resolve, ...where){        /* $AC$ Video PElement.print() Shows a video player $AC$ */
             let afterPrint = ()=>{
                 if (this.disabled)
                     this.printDisable();
                 resolve();
             };
-            PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, where]);
+            PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, ...where]);
         },
         stop: function(resolve){        /* $AC$ Video PElement.stop() Stops playing the video $AC$ */
             this.video.pause();
@@ -168,6 +167,8 @@ window.PennController._AddElementType("Video", function(PennEngine) {
         disable: function(resolve){
             this.printDisable();
             this.disabled = true;
+            this.jQueryContainer.addClass("PennController-disabled");
+            this.jQueryElement.addClass("PennController-disabled");
             resolve();
         }
         ,
@@ -176,7 +177,8 @@ window.PennController._AddElementType("Video", function(PennEngine) {
                 this.disabled = false;
                 this.jQueryDisable.remove();
                 this.jQueryDisable = null;
-                this.jQueryElement.removeClass("PennController-"+this.type+"-disabled");
+                this.jQueryContainer.addClass("PennController-disabled");
+                this.jQueryElement.addClass("PennController-disabled");
             }
             resolve();
         }

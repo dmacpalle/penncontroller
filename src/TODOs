@@ -1,10 +1,26 @@
-- Implement window.onerror and new Proxy on PennController objects to track errors and print in debug
-- Shuffle and containers: remove after shuffle removes the wrong element
+- Add shuffle for Scales
+- Add a (Copy) Report option in the debugger, to use on the forums
+- Go through emails and forum topics to list more to-do's (not enough here already)
+- Fix how (undefined)  order interacts with var items = ... when some items are PennController and some are not
+- newIbexQuestion("").settings.q("...").print().wait()
+- Add PennController.GetFPS()
+- Shuffle and containers: removing after shuffling removes the wrong element
 - Add newCanvas(getElement())?
-- Create a Canvas for the whole page by default, and make .print("center at 50%", "center at 50%") possible?
-        > getCanvas("screen")? getCanvas(PennController)? getCanvas(PennController.trial)? getCanvas(PennController.screen)?
 - Add newRow( "text" , newText("name", "text") , newImage("http://.../") ).settings.spacing("33px")
-- Get rid of .settings?
+
+- Get rid of .settings? [Maybe not]
+
+- DONE: Make it possible to give a label to non-Penncontroller Template-generated trials
+- DONE: Handle cross-table groups
+- DONE: Handle server.py requests...
+- DONE: Store key presses as key names instead of key codes? (give option)
+- PARTLY DONE WITH PRINT(X,Y): Create a Canvas for the whole page by default, and make .print("center at 50%", "center at 50%") possible?
+        > getCanvas("screen")? getCanvas(PennController)? getCanvas(PennController.trial)? getCanvas(PennController.screen)?
+- DONE: Make it possible to use custom filenames for audio recordings
+- DONE: Make debug popin appear by default?
+- DONE: Implement window.onerror and new Proxy on PennController objects to track errors and print in debug
+- DONE: Add the "disabled" class to all disabled elements
+- DONE: Rehaul of Timer element (use requestAnimationFrame)  
 - DONE: Revise tests: redundant layers + Var elements not evaluated on one layer, failing tests that should be successful
 - DONE: FIX SELECTION OF ELEMENTS (IN PARTICULAR SELECTORS) WHEN NOT DISPLAYED
 - DONE: Replace keydown with keypress in selectors

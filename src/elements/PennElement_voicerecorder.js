@@ -30,6 +30,8 @@ window.PennController._AddElementType("VoiceRecorder", function(PennEngine) {
     let resolveStart = [];          // List of promises to resolve on start
     let resolveStop = [];           // List of promises to resolve on stop
 
+    let controllerLogs = [];        // List of columns to log for both initiaterecorder and uploadcontroller
+
     // This controller MUST be manually added to items and specify a URL to a PHP file for uploading the archive
     window.PennController.InitiateRecorder = function(saveURL, message) {    /* $AC$ global.PennController.InitiateRecorder(url,message) Sets the URL where to upload the recordings and creates a trial inviting the user to activate their microphone $AC$ */
         if (!typeof(url)=="string" || !saveURL.match(/^http.+/i))
@@ -58,11 +60,11 @@ window.PennController._AddElementType("VoiceRecorder", function(PennEngine) {
                 mediaRecorder.onstop = function(e) {            // When a recording is complete
                     statusElement.css({'font-weight': "normal", color: "black", 'background-color': "lightgray"});
                     statusElement.html("Not recording");        // Indicate that recording is over in status bar
-                    currentVoiceElement.filename = 'msr-' + (new Date).toISOString().replace(/:|\./g, '-') + '.ogg';// Unique filename
-                    currentVoiceElement.blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus' });         // Blob from chunks
+                    currentVoiceElement.filename = currentVoiceElement.id + '.mp3';                         // Filename
+                    currentVoiceElement.blob = new Blob(chunks, { 'type' : 'audio/mpeg' });                 // Blob from chunks
                     currentVoiceElement.audioPlayer.src = URL.createObjectURL(currentVoiceElement.blob);    // Can replay now
-                    chunks = [];                                                                                // Reset chunks
-                    currentVoiceElement = null;                                                                 // Reset current element
+                    chunks = [];                                                                            // Reset chunks
+                    currentVoiceElement = null;                                                             // Reset current element
                     resolveStop.shift().call();
                     mediaRecorder.recording = false;
                 };
@@ -97,6 +99,11 @@ window.PennController._AddElementType("VoiceRecorder", function(PennEngine) {
                 return;
             });
         });
+        let oldLog = controller.log;
+        controller.log = (...args)=>{
+            controllerLogs.push(args);
+            oldLog.apply(controller, args);
+        }
         return controller;
     };
 
@@ -138,7 +145,8 @@ window.PennController._AddElementType("VoiceRecorder", function(PennEngine) {
                         type: 'blob'
                     }).then(function(zc) {                  // Generation/Compression of zip is complete
                         window.PennController.downloadVoiceRecordingsArchive = ()=>PennEngine.utils.saveAs(zc, "VoiceRecordingsArchive.zip");
-                        let fileName = 'msr-' + (new Date).toISOString().replace(/:|\./g, '-') + '.zip';
+                        let fileName = PennEngine.utils.guidGenerator()+'.zip';
+                        //let fileName = 'msr-' + (new Date).toISOString().replace(/:|\./g, '-') + '.zip';
                         var fileObj = new File([zc], fileName); // Create file object to upload with uniquename
                         var fd = new FormData();                // Submission-friendly format
                         fd.append('fileName', fileName);
@@ -165,6 +173,8 @@ window.PennController._AddElementType("VoiceRecorder", function(PennEngine) {
                         xhr.send(fd);                       // Send the request
                     });
                 });
+                for (let i = 0; i < controllerLogs.length; i++)
+                    uploadController.log(...controllerLogs[i]);
                 let uploadElement = new DynamicElement("PennController", uploadController);
                 if (sendResultsID[0]>=0)                    // Manual __SendResults__, add upload controller before it
                     ro[sendResultsID[0]].splice(sendResultsID[1], 0, uploadElement);
@@ -179,7 +189,8 @@ window.PennController._AddElementType("VoiceRecorder", function(PennEngine) {
 
 
     this.immediate = function(id){
-        // void
+        if (id===undefined||id===null)
+            this.id = PennEngine.utils.guidGenerator();
     };
 
     this.uponCreation = function(resolve){
@@ -302,11 +313,18 @@ window.PennController._AddElementType("VoiceRecorder", function(PennEngine) {
     
     this.end = function(){
         if (this.blob){
+            let filename = this.filename;
+            let existing_fileanames = audioStreams.map(a=>a.name);
+            let i = 0;
+            while (existing_fileanames.indexOf(filename)>=0){
+                i++;
+                filename = this.filename+"-"+i;
+            }
             audioStreams.push({
-                name: this.filename,
+                name: filename,
                 data: this.blob
             });
-            PennEngine.controllers.running.save(this.type, this.id, "Filename", this.filename, Date.now(), "NULL");
+            PennEngine.controllers.running.save(this.type, this.id, "Filename", filename, Date.now(), "NULL");
         }
         if (this.log)
             for (let r in this.recordings)
@@ -388,6 +406,8 @@ window.PennController._AddElementType("VoiceRecorder", function(PennEngine) {
             this.jQueryElement.find("button.PennController-"+this.type+"-record")
                 .attr("disabled", true)
                 .css("background-color", "brown");
+            this.jQueryContainer.addClass("PennController-disabled");
+            this.jQueryElement.addClass("PennController-disabled");    
             resolve();
         },
         enable: function(resolve){
@@ -395,6 +415,8 @@ window.PennController._AddElementType("VoiceRecorder", function(PennEngine) {
             this.jQueryElement.find("button.PennController-"+this.type+"-record")
                 .removeAttr("disabled")
                 .css("background-color", "red");
+            this.jQueryContainer.removeClass("PennController-disabled");
+            this.jQueryElement.removeClass("PennController-disabled");
             resolve();
         },
         once: function(resolve){    /* $AC$ VoiceRecorder PElement.settings.once() Will disable the recording interface after the first recording is complete $AC$ */

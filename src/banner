@@ -1,21 +1,12 @@
 PennController for IBEX
 This software is licensed under a BSD license; see the LICENSE file for details.
 
- - Version 1.2
- - Last Update:  2019, April 8
- - Major changes in version 1.2:
-    * Fixed: CSS classes no longer rely on dashes (Ibex-internal problems)
-    * Fixed: Var elements passed to tests are now properly evaluated
-    * Fixed: Html elements logged name and value in the reverse order 
-    * wait commands now deactivate their elements until test.success/failure has been completed    
-    * Two elements of a different type can now share the same name
-    * Elements can now take explicitly null or empty-string name IDs
-    * Made most element types only optionally take a name upon creation
-    * Container's size now adjusts to its content after .settings.size
-    + Added a Debug interface
-    + Added action command .click for Button elements
-    + Added the Palette element (beta)
-    + Added the Eyetracker element (beta)
-    + Added the Group element (beta)
-    + Added the DropDown element
-    + The browser now asks for confirmation before leaving the experiment's page
+ - Version 1.5
+ - Last Update:  2019, July 8
+ - Major changes in version 1.5:
+   * Fixed .test.printed (bug from 1.4 made it always fail)
+   * Fixed log format of DropDown elements
+   * Fixed a bug with the debugger(!) that could crash experiments with VBoxes
+   * Fixed a bug when adding an element with an existing ID
+   + Added dropdown.settings.callback and dropdown.settings.once
+   + Added the option to load a distant CSV file using PennController.AddTable

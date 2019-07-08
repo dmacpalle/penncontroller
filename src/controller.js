@@ -32,7 +32,7 @@ export class Controller {
         if (!this.elements.hasOwnProperty(element.type))
             this.elements[element.type] = {};
         if (this.elements[element.type].hasOwnProperty(element.id))
-            PennEngine.debug.error("Overriding another "+element.type+" element with the same name ("+id+")");
+            PennEngine.debug.error("Overriding another "+element.type+" element with the same name ("+element.id+")");
         this.elements[element.type][element.id] = element;
     }
     _getElement(id, type){                  // Returns element from the list
@@ -114,6 +114,7 @@ export var PennController = function(...rest) {
 PennController.Debug = function (onOff) {   /* $AC$ global.PennController.Debug() Enables the debug mode for testing your experiment $AC$ */
     PennEngine.debug.on = onOff==undefined||onOff;
 };
+PennController.DebugOff = ()=>PennController.Debug(false);  /* $AC$ global.PennController.DebugOff() Disables the debug mode; use before making public $AC$ */
 
 // Handler for definition of shuffleSequence
 PennController.Sequence = function(...seq) {   /* $AC$ global.PennController.Sequence(sequence) Defines the running order of your trials, based on their labels (see documentation) $AC$ */
@@ -409,7 +410,7 @@ define_ibex_controller({
             };
 
             // PRELOAD
-            let preloadElement = $("<div><p>Please wait while the resources are preloading</p>"+
+                let preloadElement = $("<div><p>Please wait while the resources are preloading</p>"+
                                         "<p>This may take up to "+minsecStringFromMilliseconds(preloadDelay)+".</p></div>");
             _t.element.append(preloadElement);          // Add the preload message to the screen
             for (let r in _t.controller.resources){     // Go through the list of resources used in this trial
@@ -436,4 +437,11 @@ define_ibex_controller({
     }
 });
 
-window.PennController = PennController;                 // Export the object globally
+window.PennController = new Proxy(PennController, {     // Export the object globally
+    get: (obj, prop) => {
+        if (prop in obj)
+            return obj[prop];
+        else
+            PennEngine.debug.error("Unknown global PennController command: &lsquo;"+prop+"&rsquo;");
+    }
+});

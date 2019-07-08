@@ -26,14 +26,24 @@ window.PennController._AddElementType("Timer", function(PennEngine) {
         this.start = ()=>{                  // Starts the timer
             if (this.instance)
                 clearTimeout(this.instance);// Clear any previous running
-            this.events.push(["Start","Start",Date.now(),"NULL"]);
-            this.instance = setTimeout(()=>this.done(), this.duration);
+            this.startTime = Date.now();
             this.running = true;
+            this.events.push(["Start","Start",this.startTime,"NULL"]);
+            let check = ()=>{
+                if (!this.running)
+                    return;
+                if (Date.now()-this.startTime >= this.duration)
+                    this.done();
+                else
+                    window.requestAnimationFrame(check);
+            };
+            check();
         };
         this.done = ()=>{                   // Called when finished running
+            this.running = false;
             this.events.push(["End","End",Date.now(),"NULL"]);
             this.elapsed = true;
-            this.running = false;
+            this.startTime = null;
         };
         resolve();
     }
@@ -61,7 +71,7 @@ window.PennController._AddElementType("Timer", function(PennEngine) {
         stop: function(resolve){   /* $AC$ Timer PElement.stop() Stops the timer $AC$ */
             if (!this.instance)
                 return resolve();
-            clearTimeout(this.instance);
+            //clearTimeout(this.instance);
             this.done();
             resolve();
         },
