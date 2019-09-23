@@ -13,6 +13,7 @@ window.PennController._AddElementType("Video", function(PennEngine) {
             this.object = document.createElement("video");
             this.object.src = this.value;                      // Creation of the video using the resource's value
             this.object.addEventListener("canplay", resolve);  // Preloading is over when can play (>> resolve)
+            this.object.load();                                // Forcing 'autopreload'
         }, addHostURLs);
     };
 
@@ -47,18 +48,20 @@ window.PennController._AddElementType("Video", function(PennEngine) {
         this.resource.object.waiting = ()=>{
             this.bufferEvents.push(["buffer",this.video.currentTime,Date.now()]);
         };
-        this.printDisable = ()=>{
+        this.printDisable = opacity=>{
+            opacity = Number(opacity) || 0.5;
             if (this.jQueryDisable instanceof jQuery)
                 this.jQueryDisable.remove();
             this.jQueryDisable = $("<div>").css({
                 position: "absolute",
                 display: "inline-block",
                 "background-color": "gray",
-                opacity: 0.5,
+                opacity: opacity,
                 width: this.jQueryElement.width(),
                 height: this.jQueryElement.height()
             });
             this.jQueryElement.before(this.jQueryDisable);
+            this.jQueryElement.removeAttr("controls");
         };
         resolve();
     };
@@ -120,7 +123,7 @@ window.PennController._AddElementType("Video", function(PennEngine) {
         print: function(resolve, ...where){        /* $AC$ Video PElement.print() Shows a video player $AC$ */
             let afterPrint = ()=>{
                 if (this.disabled)
-                    this.printDisable();
+                    this.printDisable(this.disabled);
                 resolve();
             };
             PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, ...where]);
@@ -164,9 +167,9 @@ window.PennController._AddElementType("Video", function(PennEngine) {
     };
     
     this.settings = {
-        disable: function(resolve){
-            this.printDisable();
-            this.disabled = true;
+        disable: function(resolve, opacity){    /* $AC$ Video PElement.settings.disable(opacity) Disable controls on the Video element $AC$ */
+            this.printDisable(opacity);
+            this.disabled = opacity || true;
             this.jQueryContainer.addClass("PennController-disabled");
             this.jQueryElement.addClass("PennController-disabled");
             resolve();
@@ -179,6 +182,7 @@ window.PennController._AddElementType("Video", function(PennEngine) {
                 this.jQueryDisable = null;
                 this.jQueryContainer.addClass("PennController-disabled");
                 this.jQueryElement.addClass("PennController-disabled");
+                this.jQueryElement.attr("controls", true);
             }
             resolve();
         }

@@ -18,6 +18,7 @@ import "./elements/PennElement_function.js";
 import "./elements/PennElement_html.js";
 import "./elements/PennElement_image.js";
 import "./elements/PennElement_key.js";
+import "./elements/PennElement_mousetracker.js";
 import "./elements/PennElement_palette.js";
 import "./elements/PennElement_scale.js";
 import "./elements/PennElement_selector.js";

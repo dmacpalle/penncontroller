@@ -13,6 +13,10 @@ window.PennController._AddElementType("Tooltip", function(PennEngine) {
 
     // This is executed when Ibex runs the script in data_includes (not a promise, no need to resolve)
     this.immediate = function(id, text, optionalOKLabel){
+        if (text===undefined){
+            text = id;
+            this.id = PennEngine.utils.guidGenerator();
+        }
         this.initialText = text;                            // In case this gets changed later
         this.initialLabel = optionalOKLabel;
     };
@@ -62,7 +66,7 @@ window.PennController._AddElementType("Tooltip", function(PennEngine) {
     };
     
     this.actions = {
-        print: function(resolve, element){  /* $AC$ Tooltip PElement.print(element) Prints the tooltip attached to the specified element $AC$ */
+        print: function(resolve, element, ...more){  /* $AC$ Tooltip PElement.print(element) Prints the tooltip attached to the specified element $AC$ */
             if (element && element.hasOwnProperty("_element") && element._element.jQueryElement instanceof jQuery)
                 element = element._element.jQueryElement;
             this.jQueryElement.append(this.jQueryLabel);                        // Label, aligned to the right
@@ -142,7 +146,7 @@ window.PennController._AddElementType("Tooltip", function(PennEngine) {
                 this.jQueryElement.css({position: "relative", left: "", top: "", margin: 0, display:"inline-block"});
                 if (this.jQueryLabel.css("display")!="none")
                     this.jQueryElement.css("padding-bottom", "20px");
-                PennEngine.elements.standardCommands.actions.print.apply(this, [resolve, element]);  // standard print
+                PennEngine.elements.standardCommands.actions.print.apply(this, [resolve, element, ...more]);  // standard print
             }
         },
         remove: function(resolve){

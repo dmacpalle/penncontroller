@@ -15,6 +15,7 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
             this.object = new Audio(this.value);               // Creation of the audio using the resource's value
             //this.object.addEventListener("canplay", resolve);  // Preloading is over when can play (>> resolve)
             this.object.addEventListener("canplaythrough", resolve);  // Preloading is over when can play (>> resolve)
+            this.object.load();                                // Forcing 'autopreload'
         }, addHostURLs);
     };
 
@@ -25,7 +26,6 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
         this.hasPlayed = false;                 // Whether the audio has played before
         this.disabled = false;                  // Whether the audio can be played
         this.resource.object.style = null;      // (Re)set any particular style applied to the resource's object
-        this.resource.object.currentTime = 0;   // (Re)set to the beginning
         this.jQueryElement = $(this.audio);     // The jQuery element
         this.jQueryDisable = null;              // The 'disable' element, to be printed on top
         this.playEvents = [];                   // List of ["play",time,position]
@@ -50,18 +50,20 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
         this.resource.object.waiting = ()=>{
             this.bufferEvents.push(["buffer",this.audio.currentTime,Date.now()]);
         };
-        this.printDisable = ()=>{
+        this.printDisable = opacity=>{
+            opacity = Number(opacity) || 0.5;
             if (this.jQueryDisable instanceof jQuery)
                 this.jQueryDisable.remove();
             this.jQueryDisable = $("<div>").css({
                 position: "absolute",
                 display: "inline-block",
                 "background-color": "gray",
-                opacity: 0.5,
+                opacity: opacity,
                 width: this.jQueryElement.width(),
                 height: this.jQueryElement.height()
             });
             this.jQueryElement.before(this.jQueryDisable);
+            this.jQueryElement.removeAttr("controls");
         };
         resolve();
     };
@@ -95,6 +97,7 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
         if (this.bufferEvents)
             for (let line in this.bufferEvents)
                 PennEngine.controllers.running.save(this.type, this.id, ...this.bufferEvents[line]);
+        this.resource.object.currentTime = 0;                   // Reset to the beginning
         if (this.jQueryDisable)
             this.jQueryDisable.remove();// Remove disabler from DOM
     };
@@ -108,9 +111,14 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
 
     this.actions = {
         // Every method is converted into a Promise (so need to resolve)
-        play: function(resolve){        /* $AC$ Audio PElement.play() Starts the audio playback $AC$ */
-            if (this.hasOwnProperty("audio") && this.audio instanceof Audio)
+        play: function(resolve, loop){        /* $AC$ Audio PElement.play() Starts the audio playback $AC$ */
+            if (this.hasOwnProperty("audio") && this.audio instanceof Audio){
+                if (loop && loop=="once")
+                    this.audio.removeAttribute("loop");
+                else if (loop)
+                    this.audio.loop = true;
                 this.audio.play();
+            }
             else
                 PennEngine.debug.error("No audio to play for element ", this.id);
             resolve();
@@ -167,11 +175,11 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
     };
     
     this.settings = {
-        disable: function(resolve){      /* $AC$ Audio PElement.settings.disable() Disables the interface $AC$ */
+        disable: function(resolve, opacity){      /* $AC$ Audio PElement.settings.disable(opacity) Disables the interface $AC$ */
             this.jQueryElement.addClass("PennController-disabled");
             this.jQueryContainer.addClass("PennController-disabled");
-            this.printDisable();
-            this.disabled = true;
+            this.printDisable(opacity);
+            this.disabled = opacity || true;
             resolve();
         }
         ,
@@ -182,6 +190,7 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
                 this.jQueryDisable = null;
                 this.jQueryElement.removeClass("PennController-disabled");
                 this.jQueryContainer.removeClass("PennController-disabled");
+                this.jQueryElement.attr("controls", true);
             }
             resolve();
         }
@@ -205,7 +214,7 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
         ,
         log: function(resolve,  ...what){      /* $AC$ Audio PElement.settings.log() Logs playback events $AC$ */
             if (what.length==1 && typeof(what[0])=="string")
-                this.whatToSave.push(what);
+                this.whatToSave.push(what[0]);
             else if (what.length>1)
                 this.whatToSave = this.whatToSave.concat(what);
             else

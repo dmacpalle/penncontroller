@@ -3,11 +3,17 @@
 /* $AC$ PennController.getCanvas(name) Retrieves an existing Canvas element $AC$ */
 window.PennController._AddElementType("Canvas", function(PennEngine) {
 
+    let isCoordinate = exp => exp.match(/^\s*\d+(\.\d+)?(px|pt|pc|vw|vh|em|ex|ch|rem|cm|mm|in|vmin|vmax|[%])\s*?/);
+
     this.immediate = function(id, width, height){
-        if (typeof(id)=="number" && typeof(width)=="number" && height===undefined){
-            height = width;
-            width = id;
+        if (id===undefined)
             this.id = PennEngine.utils.guidGenerator();
+        else if (height===undefined){
+            if (isCoordinate(String(id)) && isCoordinate(String(width))){
+                height = width;
+                width = id;
+                this.id = PennEngine.utils.guidGenerator();
+            }
         }
         this.width = width;
         this.height = height;

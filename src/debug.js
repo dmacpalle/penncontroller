@@ -476,7 +476,7 @@ window.onerror = function(message, uri, line) {
             }
             if (lowest.score < 0.5)
                 PennEngine.debug.error("Wrong command &lsquo;"+ref[1]+"&rsquo; on line "+line+". Did you mean to type "+lowest.command+"?");
-            else
+            else    
                 PennEngine.debug.error("Unrecognized expressions &lsquo;"+ref[1]+"&rsquo; (line "+line+")");
         }
     }

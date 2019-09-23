@@ -117,6 +117,7 @@ class PennElement {
         this.jQueryContainer = $("<div>");
         this.id = id;
         this.type = name;
+        this.validate = ()=>this.hasValidated = true;
         this._printCallback = [];
         if (type.hasOwnProperty("end"))     // Called at the end of a trial
             this.end = function(){ type.end.apply(this); };
@@ -291,8 +292,9 @@ let standardCommands = {
                     ._runPromises().then(()=>resolve());
                 return;
             }
-            if (this.hasOwnProperty("jQueryElement") && this.jQueryElement instanceof jQuery){
+            if (this.jQueryElement && this.jQueryElement instanceof jQuery){
                 this.jQueryContainer.detach();
+                this.jQueryContainer.empty();
                 this.jQueryElement.addClass("PennController-"+this.type.replace(/[\s_]/g,''));
                 this.jQueryElement.addClass("PennController-"+this.id.replace(/[\s_]/g,''));
                 let div = this.jQueryContainer;
@@ -305,7 +307,7 @@ let standardCommands = {
                     .append(this.jQueryElement);
                 if (where instanceof jQuery)                        // Add to the specified jQuery element
                     where.append(div);
-                else if (y) {
+                else if (y) {                                       // if where and y: coordinates
                     div.appendTo($("body")).css('display','inline-block');
                     let coordinates = parseCoordinates(where,y,div);
                     div.css({position: "absolute", left: coordinates.x, top: coordinates.y});
@@ -379,6 +381,48 @@ let standardCommands = {
                     if (this.jQueryAfter[a]._element && this.jQueryAfter[a]._element.jQueryElement instanceof jQuery)
                         this.jQueryAfter[a]._element.jQueryElement.detach();
             resolve();
+        },
+        wait: function(resolve, test){   /* $AC$ all PElement.wait() Waits until the element has been validated before proceeding $AC$ */
+            if (test == "first" && this.hasValidated)   // If first and already validated, resolve already
+                resolve();
+            else {                                      // Else, extend remove and do the checks
+                let resolved = false;
+                let oldValidate = this.validate;
+                this.validate = ()=>{
+                    oldValidate.apply(this);
+                    if (resolved)
+                        return;
+                    if (test instanceof Object && test._runPromises && test.success){
+                        let oldDisabled = this.disabled;  // Disable temporarilly
+                        this.jQueryElement.attr("disabled", true);
+                        this.disabled = "tmp";
+                        test._runPromises().then(value=>{   // If a valid test command was provided
+                            if (value=="success") {
+                                resolved = true;
+                                resolve();                  // resolve only if test is a success
+                            }
+                            if (this.disabled=="tmp"){
+                                this.disabled = oldDisabled;
+                                this.jQueryElement.attr("disabled", oldDisabled);
+                            }   
+                        });
+                    }
+                    else{                                    // If no (valid) test command was provided
+                        resolved = true;
+                        resolve();                          // resolve anyway
+                    }
+                };
+                if (typeof test == "number" && test > 0){
+                    let now = Date.now();
+                    let check = ()=>{
+                        if (Date.now()-now<=0)
+                            this.validate();
+                        else
+                            window.requestAnimationFrame(check);
+                    }
+                    window.requestAnimationFrame(check);
+                }
+            }
         }
     }
     ,
@@ -495,6 +539,21 @@ let standardCommands = {
             this.log = value===undefined||value;
             resolve();
         },
+        once: function(resolve){
+            if (this.hasValidated){
+                this.disabled = true;
+                this.jQueryElement.attr("disabled", true);
+            }
+            else {
+                let oldValidate = this.validate;
+                this.validate = ()=>{
+                    oldValidate.apply(this);
+                    this.disabled = true;
+                    this.jQueryElement.attr("disabled", true);
+                }
+            }
+            resolve();
+        },
         right: function(resolve){             /* $AC$ all PElements.settings.right() Aligns the element with the right edge of the printing area $AC$ */
             if (this.jQueryElement instanceof jQuery){
                 this.jQueryElement.css("text-align","right");
@@ -513,9 +572,9 @@ let standardCommands = {
                 if (this.jQueryContainer && this.jQueryContainer.parent().length){
                     let w = this.jQueryElement.width(), h = this.jQueryElement.height();
                     if (w>this.jQueryContainer.width())
-                        jQueryContainer.width(w);
+                        this.jQueryContainer.width(w);
                     if (w>this.jQueryContainer.height())
-                        jQueryContainer.height(h);
+                        this.jQueryContainer.height(h);
                 }
             }
             else
@@ -620,8 +679,10 @@ PennController._AddElementType = function(name, Type) {
         type.uponCreation = function(resolve){
             this.jQueryAfter = [];                      // Clear any element after this one
             this.jQueryBefore = [];                     // Clear any element before this one
-            if (this.jQueryElement instanceof jQuery)
+            if (this.jQueryElement && this.jQueryElement instanceof jQuery)
                 this.jQueryElement.removeAttr("style"); // Clear any style that could have been applied before
+            if (this.jQuerycontainer && this.jQueryContainer instanceof jQuery)
+                this.jQuerycontainer = $("<div>");
             if (uponCreation instanceof Function)
                 uponCreation.apply(this, [resolve]);    // Call uponCreation for this type
             else
@@ -630,7 +691,8 @@ PennController._AddElementType = function(name, Type) {
 
         let end = type.end;                             // Set a default end
         type.end = function(){
-            if (this.jQueryElement instanceof jQuery && this.jQueryElement.parent().length)
+            //if (this.jQueryElement instanceof jQuery && this.jQueryElement.parent().length)
+            if (this.jQueryElement instanceof jQuery)
                 this.jQueryElement.remove();            // Remove jQueryElement from DOM
             for (let b in this.jQueryBefore)            // Remove all preceding elements from DOM
                 if (this.jQueryBefore[b]._element && this.jQueryBefore[b]._element.jQueryElement instanceof jQuery)

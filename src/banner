@@ -1,12 +1,20 @@
 PennController for IBEX
 This software is licensed under a BSD license; see the LICENSE file for details.
 
- - Version 1.5
- - Last Update:  2019, July 8
- - Major changes in version 1.5:
-   * Fixed .test.printed (bug from 1.4 made it always fail)
-   * Fixed log format of DropDown elements
-   * Fixed a bug with the debugger(!) that could crash experiments with VBoxes
-   * Fixed a bug when adding an element with an existing ID
-   + Added dropdown.settings.callback and dropdown.settings.once
-   + Added the option to load a distant CSV file using PennController.AddTable
+ - Version 1.6
+ - Last Update:  2019, September 23
+ - Major changes in version 1.6:
+   * Fixed a bug preventing timer.stop from validating wait
+   * Fixed a bug when passing one string to audio.settings.log
+   * Fixed a bug when passing an empty string to newKey
+   * Fixed a bug preventing keypress.wait from logging properly
+   * Fixed a 'jQueryContainer undefined' error in .settings.size
+   * Better recognition of anonymous Canvas's
+   * Better cross-browser support of audio/video.settings.disable
+   * Better cross-browser support of audio/video preloading
+   + Calling commands on Template instead of on PennController now outputs errors
+   + Tooltips can now be printed at absolute coordinates (e.g. tooltip.print(500,500))
+   + Added support for anonymous Tooltip elements
+   + Added parameter 'opacity' to audio/video.settings.disable
+   + Added "loop" and "once" parameters to audio.play
+   + Added scale.unselect

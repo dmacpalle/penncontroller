@@ -1,1 +1,182 @@
-/*! $AC$ PennController.newDropDown(name,text) Creates a new DropDown element $AC$$AC$ PennController.getDropDown(name) Retrieves an existing DropDown element $AC$$AC$ DropDown PElement.shuffle() Shuffles the options currently in the drop-down $AC$$AC$ DropDown PElement.select(option) Selects the specified option $AC$$AC$ DropDown PElement.wait() Wait until an option is selectd before proceeding $AC$$AC$ DropDown PElement.settings.add(options) Adds one or more options to the drop-down $AC$$AC$ DropDown PElement.settings.remove(option) Removes the specified option from the drop-down $AC$$AC$ DropDown PElement.test.selected(option) Checks that the specified option, or any if none specified, is selected $AC$ */!function(t){var e={};function i(n){if(e[n])return e[n].exports;var s=e[n]={i:n,l:!1,exports:{}};return t[n].call(s.exports,s,s.exports,i),s.l=!0,s.exports}i.m=t,i.c=e,i.d=function(t,e,n){i.o(t,e)||Object.defineProperty(t,e,{enumerable:!0,get:n})},i.r=function(t){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(t,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(t,"__esModule",{value:!0})},i.t=function(t,e){if(1&e&&(t=i(t)),8&e)return t;if(4&e&&"object"==typeof t&&t&&t.__esModule)return t;var n=Object.create(null);if(i.r(n),Object.defineProperty(n,"default",{enumerable:!0,value:t}),2&e&&"string"!=typeof t)for(var s in t)i.d(n,s,function(e){return t[e]}.bind(null,s));return n},i.n=function(t){var e=t&&t.__esModule?function(){return t.default}:function(){return t};return i.d(e,"a",e),e},i.o=function(t,e){return Object.prototype.hasOwnProperty.call(t,e)},i.p="",i(i.s=119)}({119:function(t,e){window.PennController._AddElementType("DropDown",function(t){this.immediate=function(e,i){void 0===i&&(i=e,this.id=t.utils.guidGenerator()),this.initialText=i,this.text=i},this.uponCreation=function(t){this.options=[],this.selections=[],this.change=(()=>{if(this.jQueryElement.attr("disabled"))return;let t=this.jQueryElement.find("option:selected").val(),e=0;for(let i=0;i<this.options.length;i++)this.options[i]==t&&(e=i);this.selections.push(["Selected",t,Date.now(),e])}),this.jQueryElement=$("<select>").append($("<option>").html(this.initialText).attr({value:this.initialText,selected:!0,disabled:!0,hidden:!0})).change(()=>this.change()),t()},this.value=function(){return this.text},this.end=function(){if(this.log)if(this.selections.length)if("string"==typeof this.log&&this.log.match(/^\W*first\W*$/i))t.controllers.running.save(this.type,this.id,...this.selections[0]);else if("string"==typeof this.log&&this.log.match(/^\W*all\W*$/i))for(let e=0;e<this.selections.length;e++)t.controllers.running.save(this.type,this.id,...this.selections[e]);else t.controllers.running.save(this.type,this.id,...this.selections[this.selections.length-1]);else t.controllers.running.save(this.type,this.id,"Selected",this.jQueryElement.find("option:selected").val(),"Never","Default")},this.actions={shuffle:function(t,e){if(e){let t=this.jQueryElement.find("option:selected");e=!!t.length&&t.val()}fisherYates(this.options),this.jQueryElement.empty(),this.jQueryElement.append($("<option>").html(this.initialText).attr({value:this.initialText,selected:!0,disabled:!0,hidden:!0}));for(let t=0;t<this.options.length;t++)this.jQueryElement.append($("<option>").html(this.options[t]).attr("value",this.options[t]));e&&this.jQueryElement.find("option[value='"+e+"']").attr("selected",!0),t()},select:function(t,e){this.options.indexOf(e)>-1?(this.jQueryElement.find("option").removeAttr("selected"),this.jQueryElement.find("option[value='"+e+"']").attr("selected",!0)):Number(e)>-1&&Number(e)<this.options.length&&(this.jQueryElement.find("option").removeAttr("selected"),this.jQueryElement.find("option[value='"+this.options[Number(e)]+"']").attr("selected",!0)),t()},wait:function(t,e){if("first"==e&&this.selections.length)t();else{let i=!1,n=this.change;this.change=(()=>{if(n.call(this),!i)if(e instanceof Object&&e._runPromises&&e.success){let n=this.disabled;this.jQueryElement.attr("disabled",!0),this.disabled="tmp",e._runPromises().then(e=>{"success"==e&&(i=!0,t()),"tmp"==this.disabled&&(this.disabled=n,this.jQueryElement.attr("disabled",n))})}else i=!0,t()})}}},this.settings={add:function(t,...e){for(let t=0;t<e.length;t++)e[t]=String(e[t]),this.options.indexOf(e[t])<0&&(this.options.push(e[t]),this.jQueryElement.append($("<option>").html(e[t]).attr("value",e[t])));t()},callback:function(t,...e){let i=this.change;this.change=async function(){let t=this.jQueryElement.attr("disabled");if(await i.apply(this),!t)for(let t=0;t<e.length;t++)e[t]._runPromises?await e[t]._runPromises():e[t]instanceof Function&&await e[t]()},t()},once:function(t){let e=this.change;this.change=(()=>{e.apply(this),this.jQueryElement.attr("disabled",!0),t()})},remove:function(t,e){let i=this.options.indexOf(e);i>-1&&(this.jQueryElement.find("option[value='"+e+"']").remove(),this.options.splice(i,1)),t()}},this.test={selected:function(t){let e=this.jQueryElement.find("option:selected");return!!this.selections.length&&(void 0===t||(t==e.val()||(Number(t)>-1&&Number(t)<this.options.length?e.val()==this.options[Number(t)]:void 0)))}}})}});
+// DROPDOWN element
+/* $AC$ PennController.newDropDown(name,text) Creates a new DropDown element $AC$ */
+/* $AC$ PennController.getDropDown(name) Retrieves an existing DropDown element $AC$ */
+window.PennController._AddElementType("DropDown", function(PennEngine) {
+
+    this.immediate = function(id, text){
+        if (text===undefined){
+            text = id;
+            this.id = PennEngine.utils.guidGenerator();
+        }
+        this.initialText = text;                                        // Keep track of this for reset
+        this.text = text;
+    };
+
+    this.uponCreation = function(resolve){
+        this.options = [];
+        this.selections = [];
+        this.change = ()=>{
+            if (this.jQueryElement.attr("disabled"))
+                return;
+            let value = this.jQueryElement.find("option:selected").val();
+            let n = 0;
+            for (let i = 0; i<this.options.length; i++)
+                if (this.options[i]==value)
+                    n = i;
+            this.selections.push(["Selected", value, Date.now(), n]);
+        }
+        this.jQueryElement = $("<select>").append(
+            $("<option>").html(this.initialText)
+                        .attr({value: this.initialText, selected: true, disabled: true, hidden: true})
+        ).change(()=>this.change());
+        resolve();
+    };
+
+    this.value = function(){                                            // Value is text
+        return this.text;
+    };
+
+    this.end = function(){
+        if (this.log){
+            if (this.selections.length){
+                if (typeof(this.log)=="string" && this.log.match(/^\W*first\W*$/i))
+                    PennEngine.controllers.running.save(this.type, this.id, ...this.selections[0]);
+                else if (typeof(this.log)=="string" && this.log.match(/^\W*all\W*$/i))
+                    for (let i=0; i<this.selections.length; i++)
+                        PennEngine.controllers.running.save(this.type, this.id, ...this.selections[i]);
+                else    // last
+                    PennEngine.controllers.running.save(this.type, this.id, ...this.selections[this.selections.length-1]);
+            }
+            else
+                PennEngine.controllers.running.save(this.type, this.id, "Selected", 
+                                                    this.jQueryElement.find("option:selected").val(), "Never", "Default");
+        }
+    }
+    
+    this.actions = {
+        shuffle: function(resolve, keepSelected){   /* $AC$ DropDown PElement.shuffle() Shuffles the options currently in the drop-down $AC$ */
+            if (keepSelected){
+                let selected = this.jQueryElement.find("option:selected");
+                if (selected.length)
+                    keepSelected = selected.val();
+                else
+                    keepSelected = false;
+            }
+            fisherYates(this.options);
+            this.jQueryElement.empty();
+            this.jQueryElement.append( 
+                $("<option>").html(this.initialText)
+                        .attr({value: this.initialText, selected: true, disabled: true, hidden: true})
+            );
+            for (let i = 0; i < this.options.length; i++)
+                this.jQueryElement.append( $("<option>").html(this.options[i]).attr("value",this.options[i]) );
+            if (keepSelected)
+                this.jQueryElement.find("option[value='"+keepSelected+"']").attr("selected",true);
+            resolve();
+        },
+        select: function(resolve,  option){   /* $AC$ DropDown PElement.select(option) Selects the specified option $AC$ */
+            let index = this.options.indexOf(option);
+            if (index>-1){
+                this.jQueryElement.find("option").removeAttr("selected");
+                this.jQueryElement.find("option[value='"+option+"']").attr("selected",true);
+            }
+            else if (Number(option) > -1 && Number(option) < this.options.length){
+                this.jQueryElement.find("option").removeAttr("selected");
+                this.jQueryElement.find("option[value='"+this.options[Number(option)]+"']").attr("selected",true);
+            }
+            resolve();
+        },
+        wait: function(resolve, test){   /* $AC$ DropDown PElement.wait() Wait until an option is selectd before proceeding $AC$ */
+            if (test == "first" && this.selections.length)  // If first and already selected, resolve already
+                resolve();
+            else {                                          // Else, extend change and do the checks
+                let resolved = false;
+                let oldChange = this.change;
+                this.change = ()=>{
+                    oldChange.call(this);
+                    if (resolved)
+                        return;
+                    if (test instanceof Object && test._runPromises && test.success){
+                        let oldDisabled = this.disabled;  // Disable temporarilly
+                        this.jQueryElement.attr("disabled", true);
+                        this.disabled = "tmp";
+                        test._runPromises().then(value=>{   // If a valid test command was provided
+                            if (value=="success") {
+                                resolved = true;
+                                resolve();                  // resolve only if test is a success
+                            }
+                            if (this.disabled=="tmp"){
+                                this.disabled = oldDisabled;
+                                this.jQueryElement.attr("disabled", oldDisabled);
+                            }   
+                        });
+                    }
+                    else{                                   // If no (valid) test command was provided
+                        resolved = true;
+                        resolve();                          // resolve anyway
+                    }
+                };
+            }
+        }
+    };
+
+    this.settings = {
+        add: function(resolve,  ...options){   /* $AC$ DropDown PElement.settings.add(options) Adds one or more options to the drop-down $AC$ */
+            for (let i = 0; i < options.length; i++){
+                options[i] = String(options[i]);
+                if (this.options.indexOf(options[i])<0){
+                    this.options.push(options[i]);
+                    this.jQueryElement.append($("<option>").html(options[i]).attr('value',options[i]));
+                }
+            }
+            resolve();
+        },
+        callback: function(resolve, ...commands){
+            let oldChange = this.change;
+            this.change = async function () {
+                let disabled = this.jQueryElement.attr("disabled");
+                await oldChange.apply(this);
+                if (disabled)
+                    return;
+                for (let i = 0; i < commands.length; i++){
+                    if (commands[i]._runPromises)
+                        await commands[i]._runPromises();
+                    else if (commands[i] instanceof Function)
+                        await commands[i]();
+                }
+            }
+            resolve();
+        },
+        once: function (resolve) {
+            let oldChange = this.change;
+            this.change = ()=>{
+                oldChange.apply(this);
+                this.jQueryElement.attr("disabled", true);
+            }
+            resolve();
+        },
+        remove: function(resolve,  option){   /* $AC$ DropDown PElement.settings.remove(option) Removes the specified option from the drop-down $AC$ */
+            let index = this.options.indexOf(option);
+            if (index>-1){
+                this.jQueryElement.find("option[value='"+option+"']").remove();
+                this.options.splice(index,1);
+            }
+            resolve();
+        }
+    };
+    
+    this.test = {
+        selected: function(option){   /* $AC$ DropDown PElement.test.selected(option) Checks that the specified option, or any if none specified, is selected $AC$ */
+            let selected = this.jQueryElement.find("option:selected");
+            if (!this.selections.length)
+                return false;
+            else if (option===undefined)
+                return true;
+            else if (option == selected.val())
+                return true;
+            else if (Number(option) > -1 && Number(option) < this.options.length)
+                return selected.val() == this.options[Number(option)];
+        }
+    };
+
+});

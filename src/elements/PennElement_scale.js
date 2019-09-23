@@ -232,6 +232,7 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
         this.choice = value=>{                                      // (Re)set upon creation, since it can be modified during runtime
             if (this.disabled)
                 return;                                             // Store the value + timestamp
+            this.unselected = undefined;
             if (value && value._runPromises)
                 value = value._element.id;
             let duration = null;
@@ -272,7 +273,7 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
     };
 
     this.value = function(){                                // Value is last choice
-        if (this.choices.length)
+        if (this.choices.length && this.unselected === undefined)
             return this.choices[this.choices.length-1][1];
         else
             return NaN;
@@ -300,6 +301,22 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
             if (b>=this.buttons.length)
                 return resolve(PennEngine.debug.error("Option "+option+" not found for selection on Scale "+this.id));
             selectIndex.apply(this, [b, simulate]);
+            resolve();
+        },
+        unselect: function(resolve){
+            switch(this.scaleType){
+                case "buttons":
+                this.table.find("td.PennController-"+this.type+"-scaleButton").css("outline","");
+                break;
+                case "slider":
+                let slider = this.table.find("input[type=range]")[0];
+                slider.value = (slider.max - slider.min) / 2;
+                break;
+                case "radio":
+                this.table.find(".PennController-"+this.type+"-scaleButton input[type=radio]").removeAttr("checked");
+                break;
+            }
+            this.unselected = true;
             resolve();
         },
         wait: function(resolve, test){    /* $AC$ Scale PElement.wait() Waits until a selection happens before proceeding $AC$ */
@@ -464,7 +481,7 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
 
     this.test = {
         selected: function(value){    /* $AC$ Scale PElement.test.selected(option) Checks that the option, or any option if none specified, is selected $AC$ */
-            if (!this.choices.length)
+            if (!this.choices.length || this.unselected)
                 return false;
             else if (value == undefined)
                 return true;

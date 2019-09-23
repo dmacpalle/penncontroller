@@ -18,7 +18,7 @@ window.PennController._AddElementType("Key", function(PennEngine) {
                 PennEngine.debug.error("Invalid key(s) passed to new Key &quot;"+id+"&quot; (should be a string or a key code number)", keys[i]);
             else if (keys[i].isSpecialKey())
                 this.specialKeys.push(keys[i].toUpperCase());
-            else
+            else if (keys[i].length)
                 this.keys.push(keys[i].toUpperCase());
         }
         //this.keys = keys;
@@ -55,7 +55,7 @@ window.PennController._AddElementType("Key", function(PennEngine) {
                 for (let key in this.pressed)                   // Save any clicks if logging
                     PennEngine.controllers.running.save(this.type, this.id, ...this.pressed[key]);
             }
-            else if (this.log.indexOf("wait")) {
+            else if (this.log.indexOf("wait")>-1) {
                 let atleastone = false;
                 for (let key in this.pressed)
                     if (this.pressed[key][3]=="Wait success"){
@@ -110,6 +110,7 @@ window.PennController._AddElementType("Key", function(PennEngine) {
                         });
                     }
                     else{                                   // If no (valid) test command was provided
+                        this.pressed[this.pressed.length-1][3] = "Wait success";
                         resolved = true;
                         resolve();                          // resolve anyway  
                     }
@@ -122,7 +123,7 @@ window.PennController._AddElementType("Key", function(PennEngine) {
         callback: function(resolve, ...elementCommands){  /* $AC$ Key PElement.settings.callback(commands) Will run the specified command(s) whenever a valid keypress happens $AC$ */
             let oldPress = this.press;
             this.press = async function (key) {
-                if (!this.disabled)
+                if (this.enabled)
                     for (let c in elementCommands)
                         await elementCommands[c]._runPromises();
                 oldPress.apply(this, [key]);

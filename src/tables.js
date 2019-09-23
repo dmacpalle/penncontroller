@@ -1,6 +1,7 @@
 import "jquery-csv";
 import { PennController } from "./controller.js";
 import { PennEngine } from "./engine.js";
+import { levensthein } from "./utils.js";
 
 PennEngine.tables = {};         // Dictionary of named tables
 var defaultTable = {};          // A dummy object representing the default table handler
@@ -59,7 +60,7 @@ class Table {
                 returnTable = new Table(returnTable, this.id);
                 if (this.group)
                     returnTable.setGroup(this.group);
-                    if (this.label)
+                if (this.label)
                     returnTable.setLabel(this.label);
                 return returnTable;
             }
@@ -245,8 +246,15 @@ PennController.Template = function (tableName, func) {       /* $AC$ global.Penn
                 else
                     return PennEngine.debug.error("Table "+tableName+" does not have the right format.");
             }
-            else                                                    // If not added, return an error
-                return PennEngine.debug.error("No table found with name "+tableName);
+            else {                                                  // If not added, return an error
+                let tableList = Object.keys(PennEngine.tables);
+                let add = "";
+                for (let i = 0; i < tableList.length; i++){
+                    if ((levensthein(tableName,tableList[i]) / tableList[i].length) < 0.5)
+                        add = " Did you mean to type &lsquo;"+tableList[i]+"&rsquo;?";
+                }
+                return PennEngine.debug.error("No table found with name "+tableName+"."+add);
+            }
         }
         else if (tableName instanceof TableHandler){                // TableHandler: retrieve Table instance
             if (Object.keys(PennEngine.tables).length<1)
@@ -256,8 +264,15 @@ PennController.Template = function (tableName, func) {       /* $AC$ global.Penn
                     table = PennEngine.tables[Object.keys(PennEngine.tables)[0]];
                 else if (tableName.name && PennEngine.tables.hasOwnProperty(tableName.name))
                     table = PennEngine.tables[tableName.name];                 // Take table with corresponding name
-                else
-                    return PennEngine.debug.error("No table named "+tableName.name+" was found");
+                else {
+                    let tableList = Object.keys(PennEngine.tables);
+                    let add = "";
+                    for (let i = 0; i < tableList.length; i++){
+                        if ((levensthein(tableName.name,tableList[i]) / tableList[i].length) < 0.5)
+                            add = " Did you mean to type &lsquo;"+tableList[i]+"&rsquo;?";
+                    }
+                    return PennEngine.debug.error("No table named "+tableName.name+" was found."+add);
+                }
                 for (let a = 0; a < tableName.actions.length; a++){
                     let arg = tableName.actions[a][1];
                     switch (tableName.actions[a][0]){
@@ -320,8 +335,15 @@ PennController.Template = function (tableName, func) {       /* $AC$ global.Penn
                 get: (obj, prop) => {
                     if (prop in table.table[row])
                         return obj[prop];
-                    else
-                        PennEngine.debug.error("No column named &lsquo;"+prop+"&rsquo; found in table "+table.id);
+                    else{
+                        let columns = Object.keys(table.table[row]);
+                        let add = "";
+                        for (let i = 0; i < columns.length; i++){
+                            if ((levensthein(prop,columns[i]) / columns[i].length) < 0.5)
+                                add = " Did you mean to type &lsquo;"+columns[i]+"&rsquo;?";
+                        }
+                        PennEngine.debug.error("No column named &lsquo;"+prop+"&rsquo; found in table "+table.id+"."+add);
+                    }
                     return "";
                 }
             });
@@ -370,7 +392,14 @@ PennController.Template = function (tableName, func) {       /* $AC$ global.Penn
     if (!window.items)
         window.items = [];                                      // Create items so it can be fed later
 
-    return;
+    // Handle inappropriate calls
+    return {
+        log: ()=>PennEngine.debug.error("Tried to call .log command on PennController.Template(); .log commands should be called on PennController()"),
+        label: ()=>PennEngine.debug.error("Tried to call .label command on PennController.Template(); .label commands should be called on PennController()"),
+        setOption: ()=>PennEngine.debug.error("Tried to call .setOption command on PennController.Template(); .setOption commands should be called on PennController()"),
+        noHeader: ()=>PennEngine.debug.error("Tried to call .noHeader command on PennController.Template(); .noHeader commands should be called on PennController()"),
+        noFooter: ()=>PennEngine.debug.error("Tried to call .noFooter command on PennController.Template(); .noFooter commands should be called on PennController()")
+    };
 };
 PennController.FeedItems = (tableName, func) => PennController.Template(tableName, func);
 

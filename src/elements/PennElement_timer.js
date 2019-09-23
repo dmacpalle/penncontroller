@@ -19,13 +19,10 @@ window.PennController._AddElementType("Timer", function(PennEngine) {
     // This is executed when 'newAudio' is executed in the trial (converted into a Promise, so call resolve)
     this.uponCreation = function(resolve){
         this.elapsed = false;
-        this.instance = undefined;          // The timeout instance
         this.events = [];
         this.log = false;
         this.running = false;
         this.start = ()=>{                  // Starts the timer
-            if (this.instance)
-                clearTimeout(this.instance);// Clear any previous running
             this.startTime = Date.now();
             this.running = true;
             this.events.push(["Start","Start",this.startTime,"NULL"]);
@@ -50,8 +47,8 @@ window.PennController._AddElementType("Timer", function(PennEngine) {
 
     // This is executed at the end of a trial
     this.end = function(){
-        if (this.instance){
-            clearTimeout(this.instance);                 // Clear any unfinished timer
+        if (this.running){
+            this.running = false;
             this.events.push(["End","NA","Never","Had to halt the timer at the end of the trial"]);
         }
         if (this.log)
@@ -69,10 +66,8 @@ window.PennController._AddElementType("Timer", function(PennEngine) {
             resolve();
         },
         stop: function(resolve){   /* $AC$ Timer PElement.stop() Stops the timer $AC$ */
-            if (!this.instance)
-                return resolve();
-            //clearTimeout(this.instance);
-            this.done();
+            if (this.running)   
+                this.done();
             resolve();
         },
         wait: function(resolve, test){   /* $AC$ Timer PElement.wait() Waits until the timer elapses before proceeding $AC$ */

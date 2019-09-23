@@ -31,25 +31,40 @@ window.PennController._AddElementType("Selector", function(PennEngine) {
         map.map((m,i)=>{
             this.elements[m.old.index] = m.new.element;
             let shuf = $("<shuffle>").attr("i", i);         // Indicate the position in the map
-            m.old.element[0].jQueryElement.before(shuf);    // Place a shuffle tag before the unshuffled element
+            // m.old.element[0].jQueryElement.before(shuf);    // Place a shuffle tag before the unshuffled element
+            // shuf.css({                                      // Store unshuffled element's style to apply to new element later
+            //             position: m.old.element[0].jQueryElement.css("position"),
+            //             left: m.old.element[0].jQueryElement.css("left"),
+            //             top: m.old.element[0].jQueryElement.css("top")
+            //     });
+            m.old.element[0].jQueryContainer.before(shuf);    // Place a shuffle tag before the unshuffled element
             shuf.css({                                      // Store unshuffled element's style to apply to new element later
-                        position: m.old.element[0].jQueryElement.css("position"),
-                        left: m.old.element[0].jQueryElement.css("left"),
-                        top: m.old.element[0].jQueryElement.css("top")
+                        position: m.old.element[0].jQueryContainer.css("position"),
+                        left: m.old.element[0].jQueryContainer.css("left"),
+                        top: m.old.element[0].jQueryContainer.css("top")
                 });
             shuffleTags.push(shuf);                         // Add the shuffle tag to the list
         }); 
         shuffleTags.map(tag=>{                              // Go through each shuffle tag
             let i = tag.attr('i');                          // Retrieve the index in the map
-            let jQueryElementToMove = map[i].new.element[0].jQueryElement;
-            tag.after( jQueryElementToMove );               // Move the new element after the tag
-            jQueryElementToMove.css({                       // And apply the old element's style
+            // let jQueryElementToMove = map[i].new.element[0].jQueryElement;
+            // tag.after( jQueryElementToMove );               // Move the new element after the tag
+            // jQueryElementToMove.css({                       // And apply the old element's style
+            //     position: tag.css("position"),
+            //     left: tag.css("left"),
+            //     top: tag.css("top")
+            // });
+            // if (this.selections.length && this.selections[this.selections.length-1][1] == map[i].new.element[0].id)
+            //     jQueryElementToMove.before(this.frame);     // Also move frame if new element has frame
+            let jQueryContainerToMove = map[i].new.element[0].jQueryContainer;
+            tag.after( jQueryContainerToMove );               // Move the new element after the tag
+            jQueryContainerToMove.css({                       // And apply the old element's style
                 position: tag.css("position"),
                 left: tag.css("left"),
                 top: tag.css("top")
             });
             if (this.selections.length && this.selections[this.selections.length-1][1] == map[i].new.element[0].id)
-                jQueryElementToMove.before(this.frame);     // Also move frame if new element has frame
+                jQueryContainerToMove.before(this.frame);     // Also move frame if new element has frame
             tag.remove();                                   // Remove shuffle tag from DOM
         });
         resolve();
