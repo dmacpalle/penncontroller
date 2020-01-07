@@ -6,8 +6,16 @@ window.PennController._AddElementType("Key", function(PennEngine) {
     // This is executed when Ibex runs the script in data_includes (not a promise, no need to resolve)
     this.immediate = function(id, ...keys){
         if (keys.length<1){
-            this.id = PennEngine.utils.guidGenerator();
             keys = [id];
+            if (id===undefined||typeof(id)!="string"||id.length==0)
+                id = "Key";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("Key") && controller.elements.Key.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
         }
         this.keys = [];
         this.specialKeys = [];
@@ -16,7 +24,7 @@ window.PennController._AddElementType("Key", function(PennEngine) {
                 this.keys.push(String.fromCharCode(keys[i]));
             else if (typeof(keys[i])!="string")
                 PennEngine.debug.error("Invalid key(s) passed to new Key &quot;"+id+"&quot; (should be a string or a key code number)", keys[i]);
-            else if (keys[i].isSpecialKey())
+            else if (keys[i].isSpecialKey() || keys[i].replace(/^(Left|Right)/i,'').isSpecialKey())
                 this.specialKeys.push(keys[i].toUpperCase());
             else if (keys[i].length)
                 this.keys.push(keys[i].toUpperCase());
@@ -35,9 +43,11 @@ window.PennController._AddElementType("Key", function(PennEngine) {
             if (!this.enabled)
                 return;
             let isSpecialKey = e.key.isSpecialKey();
+            let upperE = e.key.toUpperCase();
+            let side = {0: "", 1: "LEFT", 2: "RIGHT"};
             if ((this.keys.length==0&&this.specialKeys.length==0) || // If no key specified, any key press will do
-                (isSpecialKey && this.specialKeys.filter(k=>k==e.key.toUpperCase()).length) || // special key
-                (!isSpecialKey && this.keys.filter(k=>k.indexOf(e.key.toUpperCase())>-1).length)) // regular list of keys
+                (isSpecialKey && this.specialKeys.filter(k =>(k==upperE||k===side[e.location]+upperE)).length ) || // Special key
+                (!isSpecialKey && this.keys.filter(k=>k.indexOf(upperE)>-1).length)) // Regular list of keys
                     this.press(e.key);
         });
         this.press = key=>{                                 // (Re)set press upon creation for it can be modified during trial

@@ -7,7 +7,15 @@ window.PennController._AddElementType("Button", function(PennEngine) {
     this.immediate = function(id, text){
         if (text===undefined){
             text = id;
-            this.id = PennEngine.utils.guidGenerator();
+            if (id===undefined||typeof(id)!="string"||id.length==0)
+                id = "Button";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("Button") && controller.elements.Button.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
         }
         this.initialText = text;                            // In case this gets changed later
     };

@@ -297,13 +297,9 @@ let showTables = table=>{
 
 
 let newItem = () => {
-    if (!PennEngine.debug.on){
-        window.items = undefined;
-        return;
-    }
     if (debug.runningIndex<0)
         debug.runningIndex = 0;
-    else{
+    else if (PennEngine.debug.on){
         let li = $(debug.sequenceTab.content.find("li")[debug.runningIndex]);
         li.css("color","gray");
         li.find("button").attr("disabled",true);
@@ -321,6 +317,11 @@ let newItem = () => {
     if (debug.runningOrder[debug.runningIndex][debug.runningElement].controller == "__SendResults__")
         HAS_REACHED_SEND_RESULTS = true;
 
+    if (!PennEngine.debug.on){
+        window.items = undefined;
+        return;
+    }
+    
     jumpToRow.detach();
     hideOtherGroups.detach();
     debug.currentTable = null;
@@ -398,7 +399,16 @@ let init_debug = () => {
 
     debug.errorsTab.jQuery.click();
 
-    newItem();  // First item
+    // Key to open the debugger
+    $(window.document).bind("keyup keydown", function(e){
+        if (e.ctrlKey && e.keyCode == 68) {
+            let x = window.innerWidth - WIDTH, y = window.innerHeight - HEIGHT;
+            $(window.document.body).append( debug.popin.container );
+            debug.popin.x = x;
+            debug.popin.y = y;
+            debug.popin.container.css({top: y, left: x});
+        }
+    });
 };
 
 
@@ -410,9 +420,6 @@ PennEngine.Prerun(
                 return;
             return "Your results have not been sent yet. Do you really want to leave the page?";
         };
-
-        if (!PennEngine.debug.on)
-            return;
 
         let ran = false;    // Only run the new assert once
 
@@ -431,7 +438,10 @@ PennEngine.Prerun(
                 else
                     debug.runningOrder = ro;
 
-                init_debug();
+                if (PennEngine.debug.on)
+                    init_debug();
+
+                newItem();  // First item
                         
                 return debug.runningOrder;
             };
@@ -439,18 +449,8 @@ PennEngine.Prerun(
             return oldAssert.apply(this, args);
         }
 
-
-        $(window.document).bind("keyup keydown", function(e){
-            if (e.ctrlKey && e.keyCode == 68) {
-                let x = window.innerWidth - WIDTH, y = window.innerHeight - HEIGHT;
-                $(window.document.body).append( debug.popin.container );
-                debug.popin.x = x;
-                debug.popin.y = y;
-                debug.popin.container.css({top: y, left: x});
-            }
-        });
-        
-        debug.popin.popIn();
+        if (PennEngine.debug.on)
+            debug.popin.popIn();
 
     }
 );
@@ -483,4 +483,27 @@ window.onerror = function(message, uri, line) {
     else
         PennEngine.debug.error(message);
         //console.error(message);
+}
+
+let oldGetP = window.ibex_controller_get_property;
+window.ibex_controller_get_property = (cname, oname) => {
+    let controllerNames = Object.getOwnPropertyNames( $.ui );
+
+    if (controllerNames.indexOf(cname)>-1)
+        return oldGetP(cname, oname);
+
+    let lowest = {score: 1, controllerName: ""};
+    for (let i = 0; i < controllerNames.length; i++){
+        let score = levensthein(cname,controllerNames[i]) / cname.length;
+        if (score < lowest.score){
+            lowest.score = score;
+            lowest.controllerName = controllerNames[i];
+        }
+    }
+
+    if (lowest.score < 0.5)
+        PennEngine.debug.error("Invalid controller reference: &lsquo;"+cname+"&rsquo;---Did you mean to type <strong>"+lowest.controllerName+"</strong>?");
+    else    
+        PennEngine.debug.error("Invalid controller reference: &lsquo;"+cname+"&rsquo;");
+
 }

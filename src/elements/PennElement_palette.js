@@ -4,7 +4,19 @@
 window.PennController._AddElementType("Palette", function(PennEngine) {
 
     this.immediate = function(id, mode){
+        if (mode===undefined)
+            mode = id;
         this.mode = mode||"background";
+        if (id===undefined||typeof(id)!="string"||id.length==0){
+            id = "Palette";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("Palette") && controller.elements.Palette.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
+        }
     };
 
     this.uponCreation = function(resolve){

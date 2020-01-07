@@ -6,7 +6,15 @@ window.PennController._AddElementType("DropDown", function(PennEngine) {
     this.immediate = function(id, text){
         if (text===undefined){
             text = id;
-            this.id = PennEngine.utils.guidGenerator();
+            if (id===undefined||typeof(id)!="string"||id.length==0)
+                id = "DropDown";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("DropDown") && controller.elements.DropDown.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
         }
         this.initialText = text;                                        // Keep track of this for reset
         this.text = text;
@@ -53,6 +61,7 @@ window.PennController._AddElementType("DropDown", function(PennEngine) {
         }
     }
     
+    let t = this;       // Needed to call settings form actions
     this.actions = {
         shuffle: function(resolve, keepSelected){   /* $AC$ DropDown PElement.shuffle() Shuffles the options currently in the drop-down $AC$ */
             if (keepSelected){
@@ -73,6 +82,12 @@ window.PennController._AddElementType("DropDown", function(PennEngine) {
             if (keepSelected)
                 this.jQueryElement.find("option[value='"+keepSelected+"']").attr("selected",true);
             resolve();
+        },
+        remove: function(resolve, ...options){
+            if (options.length)
+                t.settings.remove.call(this, resolve, ...options);
+            else
+                PennEngine.elements.standardCommands.actions.remove.call(this, resolve);
         },
         select: function(resolve,  option){   /* $AC$ DropDown PElement.select(option) Selects the specified option $AC$ */
             let index = this.options.indexOf(option);

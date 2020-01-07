@@ -5,8 +5,16 @@ window.PennController._AddElementType("TextInput", function(PennEngine) {
 
     // This is executed when Ibex runs the script in data_includes (not a promise, no need to resolve)
     this.immediate = function(id, text){
-        if (id===undefined)
-            this.id = PennEngine.utils.guidGenerator();
+        if (id===undefined||typeof(id)!="string"||id.length==0){
+            id = "TextInput";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("TextInput") && controller.elements.TextInput.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
+        }
         this.initialText = text;                            // In case this gets changed later
     };
 

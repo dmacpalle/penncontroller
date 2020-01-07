@@ -1,20 +1,22 @@
 PennController for IBEX
 This software is licensed under a BSD license; see the LICENSE file for details.
 
- - Version 1.6
- - Last Update:  2019, September 23
- - Major changes in version 1.6:
-   * Fixed a bug preventing timer.stop from validating wait
-   * Fixed a bug when passing one string to audio.settings.log
-   * Fixed a bug when passing an empty string to newKey
-   * Fixed a bug preventing keypress.wait from logging properly
-   * Fixed a 'jQueryContainer undefined' error in .settings.size
-   * Better recognition of anonymous Canvas's
-   * Better cross-browser support of audio/video.settings.disable
-   * Better cross-browser support of audio/video preloading
-   + Calling commands on Template instead of on PennController now outputs errors
-   + Tooltips can now be printed at absolute coordinates (e.g. tooltip.print(500,500))
-   + Added support for anonymous Tooltip elements
-   + Added parameter 'opacity' to audio/video.settings.disable
-   + Added "loop" and "once" parameters to audio.play
-   + Added scale.unselect
+ - Version 1.7
+ - Last Update:  2020, January 7
+ - Major changes in version 1.7:
+   * Fixed mime type recognition in ZIP files (now uses extension as fallback)
+   * Made .settings optional
+   * VoiceRecorder samples are now encoded using the webm format for cross-browswer compatibility
+   * No more 'data not sent' warning after the results are sent when the debugger is off
+   * ResetPrefix() now also resets global commands
+   * Fixed a bug when testing an unselected Selector
+   * Fixed a bug when using SetCounter with two parameters (label+number)
+   * Commas in string paramters of newTrial().log are now replaced with %2C and no longer add columns to the results file
+   * Anonymous elements are now named based on their content / type
+   * Fixed various bugs when referencing Var elements
+   * Fixed a bug where the value of a Var element would not update in a trial run multiple times (in newTrial().log)
+   * var.set and element.setVar should now behave consistently
+   + [PennController.]newTrial can now be used in place of PennController() to create trials
+   + Added support of LeftShift, RightShift, LeftControl, RightControl, ... as parameters for Key elements
+   + Added same special keycode support to tooltip.settings.key
+   + Debugger now catches typos in controller names, and has a better recognition/suggestion mechanism overall

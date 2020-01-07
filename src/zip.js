@@ -42,7 +42,7 @@ function _preloadZip () {
                     file.async('arraybuffer').then(function(content){   // Unzip the file
                         if (!path.match(/__MACOS.+\/\.[^\/]+$/)) {                            // Excluding weird MACOS zip files
                             let filename = path.replace(/^.*?([^\/]+)$/,"$1");                // Get rid of path, keep just filename
-                            let type = getMimetype( hexFromArrayBuffer(content.slice(0,28)) ); // Get type using magic numbers (see utils.js)
+                            let type = getMimetype( hexFromArrayBuffer(content.slice(0,28)) , filename ); // Get type using magic numbers (see utils.js)
                             if (type){                                                        // Add only type was recognized
                                 let url = URL.createObjectURL(new Blob([content], {type: type}));   // The URL of the Blob
                                 var resourceFound = false;                                    // Check extent resources

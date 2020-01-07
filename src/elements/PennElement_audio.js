@@ -5,18 +5,30 @@ window.PennController._AddElementType("Audio", function(PennEngine) {
 
     // This is executed when Ibex runs the script in data_includes (not a promise, no need to resolve)
     this.immediate = function(id, file){
-        if (typeof id == "string" && file===undefined){
-            this.id = PennEngine.utils.guidGenerator();
+        if (typeof id == "string" && file===undefined)
             file = id;
-        }
         let addHostURLs = !file.match(/^http/i);
 
         this.resource = PennEngine.resources.fetch(file, function(resolve){
             this.object = new Audio(this.value);               // Creation of the audio using the resource's value
             //this.object.addEventListener("canplay", resolve);  // Preloading is over when can play (>> resolve)
-            this.object.addEventListener("canplaythrough", resolve);  // Preloading is over when can play (>> resolve)
+            this.object.preload = "auto";
             this.object.load();                                // Forcing 'autopreload'
+            if (this.object.readyState > 3) 
+                resolve();
+            else
+                this.object.addEventListener("canplaythrough", resolve);  // Preloading is over when can play (>> resolve)
         }, addHostURLs);
+        // Naming
+        if (id===undefined||typeof(id)!="string"||id.length==0)
+            id = "Audio";
+        let controller = PennEngine.controllers.underConstruction; // Controller under construction
+        if (PennEngine.controllers.running)                     // Or running, if in running phase
+            controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+        let n = 2;
+        while (controller.elements.hasOwnProperty("Audio") && controller.elements.Audio.hasOwnProperty(id))
+            id = id + String(n);
+        this.id = id;
     };
 
     // This is executed when 'newAudio' is executed in the trial (converted into a Promise, so call resolve)

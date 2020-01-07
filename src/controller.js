@@ -62,7 +62,7 @@ export class Controller {
     log(name, value) {        /* $AC$ PennController().log(name,value) Adds value to each line of this trial in the results file $AC$ */
         if (value==undefined)
             value = name;
-        this.appendResultLine.push([name, value]);
+        this.appendResultLine.push([csv_url_encode(name), value]);
         return this;
     }
     noHeader(){         /* $AC$ PennController().noHeader() Will not run commands from the header at the beginning of this trial $AC$ */
@@ -109,6 +109,9 @@ export var PennController = function(...rest) {
     PennEngine.controllers.underConstruction = new Controller();                    // Create a new controller for next build
     return controller;                                                              // Return controller
 };
+
+// More explicit method to create a trial
+PennController.newTrial = PennController;
 
 // Whether to print debug information
 PennController.Debug = function (onOff) {   /* $AC$ global.PennController.Debug() Enables the debug mode for testing your experiment $AC$ */
@@ -222,13 +225,33 @@ PennController.SetCounter = function(...args){       /* $AC$ global.PennControll
     if (window.items == undefined)
         window.items = [];
     let label = "setCounter", options = {};
-    if (args.length == 1 || args.length == 3)
-        label = args[0];
-    else if (args.length > 1){
-        if (args[0+args.length==3].match(/set/i))
-            options.set = args[1+args.length==3];
-        else if (args[0+args.length==3].match(/inc/i))
-            options.inc = args[1+args.length==3];
+    if (args.length){
+        if (!isNaN(Number(args[0])))                // If first parameter is a number, use it to set counter 
+            options.set = Number(args[0]);
+        else if (args.length == 1){                 // If only one parameter
+            if (isNaN(Number(args[0])))
+                label = args[0];                    // it's a label if not a number
+            else
+                options.set = Number(args[0]);      // or use it to set the counter if a number
+        }
+        else if (args.length == 2 && !isNaN(Number(args[1]))){ // If two parameters and second is a number
+            if (args[0].match(/\s*inc\s*$/i))
+                options.inc = args[1];              // inc...
+            else{
+                options.set = args[1];              // if not inc, then number is to set
+                if (!args[0].match(/\s*set\s*$/i))
+                    label = args[0];                // if first is not 'set,' then it's a label
+            }
+        }
+        else if (args.length > 2 && !isNaN(Number(args[2]))){
+            label = args[0];                        // If three parameters, first is a label
+            if (args[1].match(/\s*inc\s*$/i))
+                options.inc = args[2];              // inc...
+            else
+                options.set = args[2];              // set...
+        }
+        else
+            label = args[0];                        // If all else fails, just use first parameter as a label
     }
     let item = [label, "__SetCounter__", options];
     options.label = l=>{item[0]=l; return options};
@@ -306,16 +329,37 @@ define_ibex_controller({
                 _t.controller = PennEngine.controllers.list[_t.id];
             else
                 _t.controller = _t.options;
-            _t.runHeader = _t.controller.runHeader==undefined|_t.controller.runHeader;
-            _t.runFooter = _t.controller.runFooter==undefined|_t.controller.runFooter;
+            _t.runHeader = _t.controller.runHeader==undefined||_t.controller.runHeader;
+            _t.runFooter = _t.controller.runFooter==undefined||_t.controller.runFooter;
+
+            if (_t.controller.appendResultLine === undefined)
+                _t.controller.appendResultLine = [];
 
             let preloadDelay = _t.controller.preloadDelay;
+
+            // HEADER AND FOOTER INHERITENCE
+            if (_t.runHeader && headerController instanceof Controller && !_t.controller.inheritedHeader){
+                _t.controller.resources = _t.controller.resources.concat(               // Inherit header's resources
+                    headerController.resources.filter(r=>_t.controller.resources.indexOf(r)<0)
+                );
+                $.extend(true, _t.controller.elements, headerController.elements);      // Inherit header's elements
+                for (let c = 0; c < headerController.appendResultLine.length; c++)      // Inherit header's log
+                    _t.controller.appendResultLine.unshift(headerController.appendResultLine[c]);
+                _t.controller.inheritedHeader = true;
+            }
+            if (_t.runFooter && footerController instanceof Controller && !_t.controller.inheritedFooter){
+                _t.controller.resources = _t.controller.resources.concat(               // Inherit footer's resources
+                    footerController.resources.filter(r=>_t.controller.resources.indexOf(r)<0)
+                );
+                $.extend(true, _t.controller.elements, footerController.elements);      // Inherit footer's elements
+                for (let c = 0; c < footerController.appendResultLine.length; c++)      // Inherit footer's log
+                    _t.controller.appendResultLine.push(footerController.appendResultLine[c]);
+                _t.controller.inheritedFooter = true;
+            }
 
             // SAVE
             let linesToSave = [];                       // This array will be passed to finishedCallback
             _t.save = function(elementType, elementName, parameter, value, time, ...comments){
-                // if (value && value.type == "Var")
-                //     value = value.value;
                 if (!comments.length)
                     comments = ["NULL"];
                 let row = [
@@ -325,32 +369,20 @@ define_ibex_controller({
                     ["Value", value],
                     ["EventTime", time]
                 ];
-                if (_t.controller.appendResultLine instanceof Array)// If anything to append
-                    for (let c in _t.controller.appendResultLine){
-                        let column = _t.controller.appendResultLine[c];
-                        if (!(column instanceof Array) || column.length != 2)
-                            continue;                           // Only append pairs of param + value
-                        row.push(column);
-                    }
+                // Append columns
+                for (let c = 0; c < _t.controller.appendResultLine.length; c++){
+                    // Can't just make column point to appendResultLine[c], else rigid designators override (see Var)
+                    let column = [_t.controller.appendResultLine[c][0], _t.controller.appendResultLine[c][1]];
+                    if (!(column instanceof Array) || column.length != 2)
+                        continue;                           // Only append pairs of param + value
+                    row.push(column);
+                }
                 row.push(["Comments", comments.join(',')]);     // If multiple arguments, add unnamed columns
                 linesToSave.push(row);
             };
             for (let l in _t.controller.linesToSave)       // Push what the user passed to logAppend
                 _t.save(_t.controller.linesToSave[l]);
 
-            // HEADER AND FOOTER INHERITENCE
-            if (_t.runHeader && headerController instanceof Controller){
-                _t.controller.resources = _t.controller.resources.concat(               // Inherit header's resources
-                    headerController.resources.filter(r=>_t.controller.resources.indexOf(r)<0)
-                );
-                $.extend(true, _t.controller.elements, headerController.elements);      // Inherit header's elements
-            }
-            if (_t.runFooter && footerController instanceof Controller){
-                _t.controller.resources = _t.controller.resources.concat(               // Inherit footer's resources
-                    footerController.resources.filter(r=>_t.controller.resources.indexOf(r)<0)
-                );
-                $.extend(true, _t.controller.elements, footerController.elements);      // Inherit footer's elements
-            }
 
             // END
             let trialEnded = false;
@@ -371,11 +403,25 @@ define_ibex_controller({
                 _t.save("PennController", _t.id, "_Trial_", "End", Date.now(), "NULL");
                 linesToSave.sort((a,b)=>a[4][1]>b[4][1]);// sort the lines by time
                 linesToSave.map(line=>{
-                    for (let e in line)
+                    for (let e in line){
                         if (line[e][1] instanceof Function)
                             line[e][1] = line[e][1]();  // If function/promise value, run it
-                        else if (line[e][1] && line[e][1].type=="Var" && !line[e][1]._promises.length)
-                            line[e][1] = line[e][1].value;// If Var element, evaluate it (no command)
+                        // If a PennElement, check its value (possibly recursively)
+                        let valueElements = [];
+                        // Dig as long as the element's value is pointing to another element
+                        while (line[e][1].value && line[e][1].value._element){
+                            // We've not encountered the element before: proceed
+                            if (valueElements.indexOf(line[e][1]._element)<0){
+                                valueElements.push(line[e][1]._element);
+                                line[e][1] = line[e][1].value;
+                            }
+                            else    // or break loop here if encountered before
+                                line[e][1] = line[e][1]._element.id;
+                        }
+                        if (line[e][1]._element && line[e][1]._element.id)
+                            line[e][1] = line[e][1]._element.value;
+                        line[e][1] = csv_url_encode(""+line[e][1]);
+                    }
                 });
                 _t.finishedCallback(linesToSave);       // and then call finishedCallback
             };
@@ -436,6 +482,8 @@ define_ibex_controller({
         htmlDescription: null
     }
 });
+
+
 
 window.PennController = new Proxy(PennController, {     // Export the object globally
     get: (obj, prop) => {

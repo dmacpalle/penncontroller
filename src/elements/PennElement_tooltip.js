@@ -13,12 +13,19 @@ window.PennController._AddElementType("Tooltip", function(PennEngine) {
 
     // This is executed when Ibex runs the script in data_includes (not a promise, no need to resolve)
     this.immediate = function(id, text, optionalOKLabel){
-        if (text===undefined){
+        if (text===undefined)
             text = id;
-            this.id = PennEngine.utils.guidGenerator();
-        }
         this.initialText = text;                            // In case this gets changed later
         this.initialLabel = optionalOKLabel;
+        if (id===undefined||typeof(id)!="string"||id.length==0)
+            id = "Tooltip";
+        let controller = PennEngine.controllers.underConstruction; // Controller under construction
+        if (PennEngine.controllers.running)                     // Or running, if in running phase
+            controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+        let n = 2;
+        while (controller.elements.hasOwnProperty("Tooltip") && controller.elements.Tooltip.hasOwnProperty(id))
+            id = id + String(n);
+        this.id = id;
     };
 
     // This is executed when 'newAudio' is executed in the trial (converted into a Promise, so call resolve)
@@ -205,19 +212,20 @@ window.PennController._AddElementType("Tooltip", function(PennEngine) {
             resolve();
         },
         key: function(resolve, keys, noclick){  /* $AC$ Tooltip PElement.settings.key(key) Will validate (and remove) the tooltip whenever the specified key is pressed $AC$ */
-            if (Number(keys)>0)                             // If keycode
-                PennEngine.events.keypress(e=>{
-                    if (!this.jQueryElement.parent().length)
-                        return;
-                    if (e.keyCode==keys)
-                        this.validate();
-                });
-            else if (typeof(keys)=="string")                // If string of key(s)
-                PennEngine.events.keypress(e=>{
-                    if (!this.jQueryElement.parent().length)
-                        return;
-                    let key = e.keyCode;
-                    if (!keys.length||keys.toUpperCase().includes(String.fromCharCode(key).toUpperCase()))
+            if (keys != " " && !isNaN(Number(keys)))    // If keycode
+                keys = String.fromCharCode(keys);
+            if (typeof(keys) != "string")
+                resolve(PennEngine.debug.error("Invalid key(s) passed to Tooltip &quot;"+id+"&quot; (should be a string or a key code number)", keys));
+            keys = keys.toUpperCase();
+            PennEngine.events.keypress(e=>{
+                if (!this.jQueryElement.parent().length)
+                    return;
+                let isSpecialKey = e.key.isSpecialKey();
+                let upperE = e.key.toUpperCase();
+                let side = {0: "", 1: "LEFT", 2: "RIGHT"};
+                if ((keys===undefined||keys.length==0) || // If no key specified, any key press will do
+                    (isSpecialKey && (keys==upperE||keys==side[e.location]+upperE)) || // Special key
+                    (!isSpecialKey && keys.indexOf(upperE)>-1) ) // Regular list of keys
                         this.validate();
                 });
             if (noclick){                                   // If noclick was specified
@@ -231,8 +239,12 @@ window.PennController._AddElementType("Tooltip", function(PennEngine) {
         label: function(resolve, text){  /* $AC$ Tooltip PElement.settings.label(text) Defines the text used for the validation label $AC$ */
             this.label = text;
             this.resetLabel = true;
-            this.jQueryLabel.html(text);
-            this.jQueryLabel.css("display","inherit");
+            if (typeof(text)!="string" || text.match(/^[\s\t]*$/))
+                this.jQueryLabel.css("display","none");
+            else{
+                this.jQueryLabel.html(text);
+                this.jQueryLabel.css("display","inherit");
+            }
             resolve();
         },
         log: function(resolve) {  /* $AC$ Tooltip PElement.settings.log() Will log when the tooltip is validated in the results file $AC$ */

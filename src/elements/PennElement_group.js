@@ -117,8 +117,16 @@ window.PennController._AddElementType("Group", function(PennEngine) {
 
     this.immediate = function(id, ...elements){
         if (typeof(id) != "string" && id instanceof Object && id.hasOwnProperty("_element")){
-            this.id = PennEngine.utils.guidGenerator();
             elements = [id, ...elements];
+            if (id===undefined||typeof(id)!="string"||id.length==0)
+                id = "Group";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("Group") && controller.elements.Group.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
         }
         this.initialElements = elements;
     };
@@ -142,9 +150,14 @@ window.PennController._AddElementType("Group", function(PennEngine) {
         }
     };
     
-    
+    let t = this;   // Needed to call settings from actions
     this.actions = {
-        // void
+        remove: function(resolve, ...elementCommands){
+            if (elementCommands.length)
+                t.settings.remove.call(this, resolve, ...elementCommands);
+            else
+                PennEngine.elements.standardCommands.actions.remove.call(this, resolve);
+        }
     };
 
     this.settings = {

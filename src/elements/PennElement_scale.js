@@ -207,7 +207,15 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
     this.immediate = function(id, ...buttons){
         if (!buttons.length){
             buttons = [id];
-            this.id = PennEngine.utils.guidGenerator();
+            if (id===undefined||typeof(id)!="string"||id.length==0)
+                id = "Scale";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("Scale") && controller.elements.Scale.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
         }
         if (typeof(buttons[0])!="string" && Number(buttons[0])>0)
             this.initialButtons = new Array(Number(buttons[0])); // Number: array of void values/labels
@@ -284,6 +292,7 @@ window.PennController._AddElementType("Scale", function(PennEngine) {
             buildScale.apply(this);                         // (Re)Build the scale when printing
             let afterPrint = ()=>{
                 fixAesthetics.apply(this);                  // Need table on the page to calculate widths and heights
+                this.jQueryContainer.css({display: 'flex', 'align-items': 'center'});
                 resolve();
             };                                              // Standard print, then afterPrint resolves
             PennEngine.elements.standardCommands.actions.print.apply(this, [afterPrint, ...where]);

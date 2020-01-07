@@ -6,7 +6,15 @@ window.PennController._AddElementType("Text", function(PennEngine) {
     this.immediate = function(id, text){
         if (text===undefined){
             text = id;
-            this.id = PennEngine.utils.guidGenerator();
+            if (id===undefined||typeof(id)!="string"||id.length==0)
+                id = "Text";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("Text") && controller.elements.Text.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
         }
         this.initialText = text;                                        // Keep track of this for reset
         this.text = text;

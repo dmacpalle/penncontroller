@@ -189,8 +189,15 @@ window.PennController._AddElementType("VoiceRecorder", function(PennEngine) {
 
 
     this.immediate = function(id){
-        if (id===undefined||id===null)
-            this.id = PennEngine.utils.guidGenerator();
+        if (id===undefined||typeof(id)!="string"||id.length==0)
+            id = "VoiceRecorder";
+        let controller = PennEngine.controllers.underConstruction; // Controller under construction
+        if (PennEngine.controllers.running)                     // Or running, if in running phase
+            controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+        let n = 2;
+        while (controller.elements.hasOwnProperty("VoiceRecorder") && controller.elements.VoiceRecorder.hasOwnProperty(id))
+            id = id + String(n);
+        this.id = id;
     };
 
     this.uponCreation = function(resolve){

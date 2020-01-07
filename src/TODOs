@@ -1,10 +1,13 @@
+- Use flow CSS for better vertical alignment with before and after (Scale)
+- Throw a warning when a Canvas' element overflows?
+- Make Youtube disable not gray out the video(?)
+- Youtube disable prevents from playing through the play command
+- Youtube does not preload well on Chrome
 - Add a way to customize the results file
     Time only once (not on every line)
         Time,MD5/ID,Group,Trial#,Screen#,Label,Controller,
     pc:                                                     PennElementType,PennElementName,Parameter,Value
-- Add a Wheel?
-- setVar and var.set behave differently in a number of ways, in particular when global
-- getVar in PennController().log is not re-evaluated upon repetition of trial
+- Add a Wheel? As a settings of the scale?
 - Add the option to pass a number as a parameter to wait for timeout
     >  Generalize 'wait'
 - Revise selector.shuffle: messes up when contains printed + unprinted elements
@@ -36,9 +39,17 @@
 - fix "top|middle at ..." in .print (shouldn't subtract whole height + "right" doesn't work?)   <   ??
 - Remove elements printed globally (.print(x,y)) at the end of trials   <   ??
 
-- Get rid of .settings? [Maybe not]
+- Get rid of .settings? [Maybe not] < Why not?
 
 
+- DONE(?): setVar and var.set behave differently in a number of ways, in particular when global
+- DONE: Header/Footer's inheritence of .log is duplicated when the same trial is run multiple times
+- DONE: getVar in PennController().log is not re-evaluated upon repetition of trial
+- DONE: Throw an error when misspelling a Controller's name
+- DONE: Remove tooltip's bottom padding when label is empty
+- DONE: Make tooltip.settings.key accept special key names (like the key element)
+- DONE: Handle optional .settings from AddStandardCommands
+- DONE: Remove all .settings?
 - DONE: Multiple Key elements in a single trial only log the last one
     (NOT DONE) > Actually it's a complete mess, should juss rewrite the whole log thing
 - DONE: Add a MouseTracker

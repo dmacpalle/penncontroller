@@ -71,8 +71,16 @@ window.PennController._AddElementType("Html", function(PennEngine) {
 
     this.immediate = function(id, html){
         if (html===undefined){
-            this.id = PennEngine.utils.guidGenerator();
             html = id;
+            if (id===undefined||typeof(id)!="string"||id.length==0)
+                id = "Html";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("Html") && controller.elements.Html.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
         }
         this.html = html;
     };

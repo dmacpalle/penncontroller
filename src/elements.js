@@ -124,14 +124,25 @@ class PennElement {
     }
 }
 
-let errorCommand = (command, type, name) => {
+let errorCommand = (command, type, name, dict) => {
     let add = "";
-    if ((levensthein(command,"settings") / "settings".length) < 0.5)
-        add = " Did you mean to type &lsquo;settings&rsquo;?";
-    if ((levensthein(command,"test") / "test".length) < 0.5)
-        add = " Did you mean to type &lsquo;test&rsquo;?";
-    if ((levensthein(command,"testNot") / "testNot".length) < 0.5)
-        add = " Did you mean to type &lsquo;testNot&rsquo;?";
+    let test = command.replace(/^\.(settings|testNot|test)\./,'');
+    if ((levensthein(test,"settings") / "settings".length) < 0.5)
+        add = " Did you mean to type &lsquo;<strong>settings</strong>&rsquo;?";
+    if ((levensthein(test,"test") / "test".length) < 0.5)
+        add = " Did you mean to type &lsquo;<strong>test</strong>&rsquo;?";
+    if ((levensthein(test,"testNot") / "testNot".length) < 0.5)
+        add = " Did you mean to type &lsquo;<strong>testNot</strong>&rsquo;?";
+    let lowest = {score: 1, command: ""};
+    for (let i = 0; i < dict.length; i++){
+        let score = levensthein(test,dict[i]) / test.length;
+        if (score < lowest.score){
+            lowest.score = score;
+            lowest.command = dict[i];
+        }
+    }
+    if (lowest.score < 0.5)
+        add = " Did you mean to type <strong>"+command.replace(test,lowest.command)+"</strong>?";
     PennEngine.debug.error("Command &lsquo;"+command+"&rsquo; unknown on "+type+" element &lsquo;"+name+"&rsquo;."+add);
 };
 
@@ -151,11 +162,11 @@ class PennElementCommands {
                         r = this[prop];
                     }
                     catch(err){
-                        errorCommand(prop,this.type,this._element.id);
+                        errorCommand(prop,this.type,this._element.id, Object.getOwnPropertyNames(type.actions));
                         return t;
                     }
                     if (r === undefined && typeof(prop) == "string" && prop != "nodeType")
-                        errorCommand(prop,this.type,this._element.id);
+                        errorCommand(prop,this.type,this._element.id, Object.getOwnPropertyNames(type.actions));
                     return r;
                 }
             }
@@ -195,7 +206,8 @@ class PennElementCommands {
                 if (prop in obj)
                     return obj[prop];
                 else
-                    PennEngine.debug.error("Command &lsquo;.settings."+prop+"&rsquo; unknown on "+this.type+" element &lsquo;"+this._element.id+"&rsquo;");
+                    errorCommand(".settings."+prop,this.type,this._element.id, Object.getOwnPropertyNames(type.settings));
+                    // PennEngine.debug.error("Command &lsquo;.settings."+prop+"&rsquo; unknown on "+this.type+" element &lsquo;"+this._element.id+"&rsquo;");
             }
         });
         for (let p in type.settings) {
@@ -219,7 +231,8 @@ class PennElementCommands {
                 if (prop in obj)
                     return obj[prop];
                 else
-                    PennEngine.debug.error("Command &lsquo;.test."+prop+"&rsquo; unknown on "+this.type+" element &lsquo;"+this._element.id+"&rsquo;");
+                    errorCommand(".test."+prop,this.type,this._element.id, Object.getOwnPropertyNames(type.test));
+                    //PennEngine.debug.error("Command &lsquo;.test."+prop+"&rsquo; unknown on "+this.type+" element &lsquo;"+this._element.id+"&rsquo;");
             }
         });
         t.testNot = new Proxy({}, {
@@ -227,7 +240,8 @@ class PennElementCommands {
                 if (prop in obj)
                     return obj[prop];
                 else
-                    PennEngine.debug.error("Command &lsquo;.testNot."+prop+"&rsquo; unknown on "+this.type+" element &lsquo;"+this._element.id+"&rsquo;");
+                    errorCommand(".testNot."+prop,this.type,this._element.id, Object.getOwnPropertyNames(type.test));
+                    //PennEngine.debug.error("Command &lsquo;.testNot."+prop+"&rsquo; unknown on "+this.type+" element &lsquo;"+this._element.id+"&rsquo;");
             }
         });
         for (let p in type.test) {
@@ -675,6 +689,11 @@ PennController._AddElementType = function(name, Type) {
                 type.test[test] = standardCommands.test[test];
         }
 
+        for (let command in type.settings){             // Making .settings commands available as main actions
+            if (!type.actions.hasOwnProperty(command))
+                type.actions[command] = type.settings[command];
+        }
+
         let uponCreation = type.uponCreation;           // Set a default uponCreation
         type.uponCreation = function(resolve){
             this.jQueryAfter = [];                      // Clear any element after this one
@@ -802,34 +821,16 @@ PennController._AddStandardCommands = function(commandsConstructor){
                     PennEngine.debug.error("Standard "+type+" command "+name+" should be a function");
                 else{
                     standardCommands[type][name] = command;
-                    for (let t in elementTypes)
+                    for (let t in elementTypes){
                         if (!elementTypes[t][type].hasOwnProperty(name))
                             elementTypes[t][type][name] = command;
+                        if (type == "settings" && !elementTypes[t].actions.hasOwnProperty(name))
+                            elementTypes[t].actions[name] = command;
+                    }
                 }
             }
         }
         else
             PennEngine.debug.error("Standard command type unknown", type);
-    }
-};
-
-
-// This allows the users to call the instruction methods as global functions
-PennController.ResetPrefix = function(prefixName) { /* $AC$ global.PennController.ResetPrefix(prefix) Resets the prefix for the new* and get* commands; pass null to make them global $AC$ */
-    if (typeof(prefixName)=="string"){
-        if (window[prefix])
-            throw "ERROR: prefix string already used for another JS object";
-        window[prefixName] = {};                // Create an object
-        var prefix = window[prefixName];        // Point to the object
-    }
-    else
-        var prefix = window;                    // If no (valid) prefix name, drop any prefix (object = window)
-    let descriptors = Object.getOwnPropertyDescriptors(PennController.Elements);
-    for (let d in descriptors){
-        let descriptor = descriptors[d];
-        if (descriptor.value instanceof Function)
-            prefix[d] = descriptor.value;                   // new/get
-        else if (descriptor.get instanceof Function)
-            Object.defineProperty(prefix, d, descriptor);   // default
     }
 };

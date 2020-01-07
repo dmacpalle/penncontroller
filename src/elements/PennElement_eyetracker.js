@@ -311,7 +311,15 @@ window.PennController._AddElementType("EyeTracker", function(PennEngine) {
         if (typeof(id)=="number" && (span===undefined||(typeof(span)=="number"&&proportion===undefined))){
             proportion = span;
             span = id;
-            this.id = PennEngine.utils.guidGenerator();
+            if (id===undefined||typeof(id)!="string"||id.length==0)
+                id = "EyeTracker";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("EyeTracker") && controller.elements.EyeTracker.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
         }
         this.span = Number(span);
         this.proportion = proportion;

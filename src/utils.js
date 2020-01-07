@@ -21,7 +21,7 @@ export function hexFromArrayBuffer (array) {
 
 // See https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
 // See https://en.wikipedia.org/wiki/List_of_file_signatures
-export function getMimetype (signature) {
+export function getMimetype (signature, filename) {
     // IMAGE
     if (signature.match(/^00000[12]00/i))
         return 'image/x-icon';
@@ -57,8 +57,48 @@ export function getMimetype (signature) {
         return 'application/pdf';
     if (signature.match(/^504B0304/i))
         return 'application/zip';
-    else
-        return false;
+    else{
+        let r = filename.match(/\.([^.]+)$/);
+        if (r){
+            switch(r[1].toLowerCase()){
+                case 'bmp':
+                    return 'image/bmp';
+                case 'png':
+                    return 'image/png'; 
+                case 'gif':
+                    return 'image/gif'; 
+                case 'webp':
+                    return 'image/webp';
+                case 'jpg':
+                case 'jpeg':
+                    return 'image/jpeg';
+                case 'mp3':
+                    return 'audio/mpeg';
+                case 'ogg':
+                case 'oga':
+                    return 'audio/ogg';
+                case 'midi':
+                case 'mid':
+                    return 'audio/midi';
+                case 'wav':
+                    return 'audio/wave';
+                case 'webm':
+                    return 'video/webm';
+                case 'avi':
+                    return 'video/avi';
+                case 'mp4':
+                    return 'video/mp4';
+                case 'ogv':
+                    return 'video/ogg';
+                case 'mov':
+                    return 'video/quicktime';
+                default:
+                    return '';
+            }
+        }
+        else
+            return '';
+    }
 }
 
 

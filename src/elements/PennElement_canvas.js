@@ -3,16 +3,31 @@
 /* $AC$ PennController.getCanvas(name) Retrieves an existing Canvas element $AC$ */
 window.PennController._AddElementType("Canvas", function(PennEngine) {
 
-    let isCoordinate = exp => exp.match(/^\s*\d+(\.\d+)?(px|pt|pc|vw|vh|em|ex|ch|rem|cm|mm|in|vmin|vmax|[%])\s*?/);
+    let isCoordinate = exp => exp.match(/^\s*\d+(\.\d+)?(px|pt|pc|vw|vh|em|ex|ch|rem|cm|mm|in|vmin|vmax|[%])?\s*?/);
 
     this.immediate = function(id, width, height){
-        if (id===undefined)
-            this.id = PennEngine.utils.guidGenerator();
+        if (id===undefined){
+            id = "Canvas";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (!(controller.elements.hasOwnProperty("Canvas") && controller.elements.Canvas.hasOwnProperty(id)))
+                id = id + String(n);
+            this.id = id;
+        }
         else if (height===undefined){
             if (isCoordinate(String(id)) && isCoordinate(String(width))){
                 height = width;
                 width = id;
-                this.id = PennEngine.utils.guidGenerator();
+                id = "Canvas";
+                let controller = PennEngine.controllers.underConstruction; // Controller under construction
+                if (PennEngine.controllers.running)                     // Or running, if in running phase
+                    controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+                let n = 2;
+                while (controller.elements.hasOwnProperty("Canvas") && controller.elements.Canvas.hasOwnProperty(id))
+                    id = id + String(n);
+                this.id = id;
             }
         }
         this.width = width;
@@ -62,6 +77,7 @@ window.PennController._AddElementType("Canvas", function(PennEngine) {
         return this.elementCommands.length;
     };
     
+    let t = this;       // Needed to call settings form actions
     this.actions = {
         print: async function(resolve, ...where){
             let t=this, showElements = async function(){
@@ -70,6 +86,13 @@ window.PennController._AddElementType("Canvas", function(PennEngine) {
                 resolve();
             };
             PennEngine.elements.standardCommands.actions.print.apply(this, [showElements, ...where]);
+        }
+        ,
+        remove: async function(resolve, ...elementCommands){    // Merged with settings since 1.7
+            if (elementCommands.length)
+                t.settings.remove.call(this, resolve, ...elementCommands);
+            else
+                PennEngine.elements.standardCommands.actions.remove.call(this, resolve);
         }
     };
 

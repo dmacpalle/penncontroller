@@ -5,8 +5,16 @@ window.PennController._AddElementType("Function", function(PennEngine) {
 
     this.immediate = function(id, func){
         if (typeof id == "function"){
-            this.id = PennEngine.utils.guidGenerator();
             func = id;
+            if (id===undefined||typeof(id)!="string"||id.length==0)
+                id = "Function";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("Function") && controller.elements.Function.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
         }
         this.function = func;
     };

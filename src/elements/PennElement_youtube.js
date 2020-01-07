@@ -24,10 +24,8 @@ window.PennController._AddElementType("Youtube", function(PennEngine) {
 
     // This is executed when Ibex runs the script in data_includes (not a promise, no need to resolve)
     this.immediate = function(id, code, showControls){
-        if (code === undefined && typeof(id)=="string"){
-            this.id = PennEngine.utils.guidGenerator();
+        if (code === undefined && typeof(id)=="string")
             code = id;
-        }
         if (!(code && typeof(code)=="string"))
             PennEngine.debug.error("Invalid code for Youtube element "+id, code);
         if (showControls && !showControls.match(/^\W*no\W*controls?\W*$/i))
@@ -86,6 +84,16 @@ window.PennController._AddElementType("Youtube", function(PennEngine) {
             });
             this.object = iframe;
         }, false);                                      // Do not try to add host urls
+        // Naming
+        if (id===undefined||typeof(id)!="string"||id.length==0)
+            id = "Youtube";
+        let controller = PennEngine.controllers.underConstruction; // Controller under construction
+        if (PennEngine.controllers.running)                     // Or running, if in running phase
+            controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+        let n = 2;
+        while (controller.elements.hasOwnProperty("Youtube") && controller.elements.Youtube.hasOwnProperty(id))
+            id = id + String(n);
+        this.id = id;
     };
 
     this.uponCreation = function(resolve){

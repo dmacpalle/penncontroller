@@ -4,17 +4,29 @@
 window.PennController._AddElementType("Video", function(PennEngine) {
 
     this.immediate = function(id, file){
-        if (typeof id == "string" && file===undefined){
-            this.id = PennEngine.utils.guidGenerator();
+        if (typeof id == "string" && file===undefined)
             file = id;
-        }
         let addHostURLs = !file.match(/^http/i);
         this.resource = PennEngine.resources.fetch(file, function(resolve){
             this.object = document.createElement("video");
             this.object.src = this.value;                      // Creation of the video using the resource's value
-            this.object.addEventListener("canplay", resolve);  // Preloading is over when can play (>> resolve)
+            this.object.preload = "auto";
             this.object.load();                                // Forcing 'autopreload'
+            if (this.object.readyState > 3) 
+                resolve();
+            else 
+                this.object.addEventListener("canplaythrough", resolve);  // Preloading is over when can play (>> resolve)
         }, addHostURLs);
+        // Naming
+        if (id===undefined||typeof(id)!="string"||id.length==0)
+            id = "Video";
+        let controller = PennEngine.controllers.underConstruction; // Controller under construction
+        if (PennEngine.controllers.running)                     // Or running, if in running phase
+            controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+        let n = 2;
+        while (controller.elements.hasOwnProperty("Video") && controller.elements.Video.hasOwnProperty(id))
+            id = id + String(n);
+        this.id = id;
     };
 
     this.uponCreation = function(resolve){

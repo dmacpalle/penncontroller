@@ -6,8 +6,16 @@ window.PennController._AddElementType("Timer", function(PennEngine) {
     // This is executed when Ibex runs the script in data_includes (not a promise, no need to resolve)
     this.immediate = function(id, duration){
         if (duration===undefined&&Number(id)>0){
-            this.id = PennEngine.utils.guidGenerator();
             duration = id;
+            if (id===undefined||typeof(id)!="string"||id.length==0)
+                id = "Timer";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("Timer") && controller.elements.Timer.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
         }
         this.duration = 0;
         if (Number(duration)>0)

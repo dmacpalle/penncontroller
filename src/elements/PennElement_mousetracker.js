@@ -25,8 +25,16 @@ window.PennController._AddElementType("MouseTracker", function(PennEngine) {
     let MouseX, MouseY;
 
     this.immediate = function(id){
-        if (id===undefined)
-            this.id = PennEngine.utils.guidGenerator();
+        if (id===undefined||typeof(id)!="string"||id.length==0){
+            id = "MouseTracker";
+            let controller = PennEngine.controllers.underConstruction; // Controller under construction
+            if (PennEngine.controllers.running)                     // Or running, if in running phase
+                controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+            let n = 2;
+            while (controller.elements.hasOwnProperty("MouseTracker") && controller.elements.MouseTracker.hasOwnProperty(id))
+                id = id + String(n);
+            this.id = id;
+        }
         $(document).mousemove( e=>{
             MouseX = e.clientX;
             MouseY = e.clientY;

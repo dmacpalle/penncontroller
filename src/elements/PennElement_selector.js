@@ -71,6 +71,15 @@ window.PennController._AddElementType("Selector", function(PennEngine) {
     }
 
     this.immediate = function(id){
+        if (id===undefined||typeof(id)!="string"||id.length==0)
+            id = "Selector";
+        let controller = PennEngine.controllers.underConstruction; // Controller under construction
+        if (PennEngine.controllers.running)                     // Or running, if in running phase
+            controller = PennEngine.controllers.list[PennEngine.controllers.running.id];
+        let n = 2;
+        while (controller.elements.hasOwnProperty("Selector") && controller.elements.Selector.hasOwnProperty(id))
+            id = id + String(n);
+        this.id = id;
     };
 
     this.uponCreation = function(resolve){
@@ -145,8 +154,13 @@ window.PennController._AddElementType("Selector", function(PennEngine) {
     this.value = function(){                                // Value is last selection
         if (this.selections.length){
             let selectedElementID = this.selections[this.selections.length-1][1];
-            let selectedElement = this.elements.filter(e=>e[0].id==selectedElementID)[0][0];
-            return window.PennController.Elements["get"+selectedElement.type](selectedElement.id);
+            let selectedElement = this.elements.filter(e=>e[0].id==selectedElementID);
+            if (selectedElement.length){
+                selectedElement = selectedElement[0][0];
+                return window.PennController.Elements["get"+selectedElement.type](selectedElement.id);
+            }
+            else
+                return null;
         }
         else
             return null;
